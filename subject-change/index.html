@@ -357,8 +357,55 @@ h1{font-size:clamp(1.55rem,5vw,2.1rem);margin:16px 0 6px;letter-spacing:.04em}
       </div>
     </div>
     <div id="lab-choose-line" class="hidden">
-      <div class="prompt">選擇正確的下一步：</div>
-      <div class="chip-opts" id="lab-chips"></div>
+      <div class="prompt" style="margin-bottom:6px">請自行輸入做完這一步之後的方程</div>
+      <textarea class="lab-eq" id="lab-step-eq" rows="2" placeholder="例如：y-3=2x" inputmode="text" autocomplete="off" spellcheck="false"></textarea>
+      <div class="math-pad" id="lab-step-math-pad" aria-label="步驟方程數學符號鍵盤">
+        <div class="math-pad-label">數學符號（點一下插入到上方輸入框）</div>
+        <div class="math-pad-row ops">
+          <button type="button" data-ins="+">+</button>
+          <button type="button" data-ins="-">−</button>
+          <button type="button" data-ins="*">×</button>
+          <button type="button" data-ins="/">÷</button>
+          <button type="button" data-ins="=">=</button>
+          <button type="button" data-ins="(">(</button>
+          <button type="button" data-ins=")">)</button>
+        </div>
+        <div class="math-pad-row pows">
+          <button type="button" data-ins="^2">𝑥²</button>
+          <button type="button" data-ins="^3">𝑥³</button>
+          <button type="button" data-ins="^">^</button>
+          <button type="button" data-ins="√">√</button>
+          <button type="button" class="wide" data-ins="frac">分數 ( )/()</button>
+        </div>
+        <div class="math-pad-row vars">
+          <button type="button" data-ins="x">𝑥</button>
+          <button type="button" data-ins="y">𝑦</button>
+          <button type="button" data-ins="a">𝑎</button>
+          <button type="button" data-ins="b">𝑏</button>
+          <button type="button" data-ins="c">𝑐</button>
+          <button type="button" data-ins="n">𝑛</button>
+        </div>
+        <div class="math-pad-row ops" style="grid-template-columns:repeat(5,1fr)">
+          <button type="button" data-ins="1">1</button>
+          <button type="button" data-ins="2">2</button>
+          <button type="button" data-ins="3">3</button>
+          <button type="button" data-ins="4">4</button>
+          <button type="button" data-ins="5">5</button>
+        </div>
+        <div class="math-pad-row ops" style="grid-template-columns:repeat(5,1fr)">
+          <button type="button" data-ins="6">6</button>
+          <button type="button" data-ins="7">7</button>
+          <button type="button" data-ins="8">8</button>
+          <button type="button" data-ins="9">9</button>
+          <button type="button" data-ins="0">0</button>
+        </div>
+        <div class="math-pad-row edit">
+          <button type="button" class="muted" data-ins="bs">⌫ 刪去一字</button>
+          <button type="button" class="danger" data-ins="clear">清除全部</button>
+        </div>
+      </div>
+      <button class="btn primary block" id="lab-check-step" type="button" style="margin-top:10px">核對</button>
+      <div class="name-err" id="lab-step-err"></div>
     </div>
     <div class="done-banner hidden" id="lab-done">🎉 完成！已成功以指定字母為主項。</div>
     <div class="steps-box hidden" id="lab-summary"><h4>📝 完整步驟</h4><div id="lab-summary-body"></div></div>
@@ -1108,8 +1155,8 @@ function normalizeLabEq(raw){
   s=s.replace(/\*/g,''); // leftover * not needed for Band 3 juxtaposition
   return s;
 }
-function insertAtLabCursor(payload){
-  const ta=$('lab-eq');
+function insertAtLabCursor(payload, taId){
+  const ta=$(taId||'lab-eq');
   if(!ta) return;
   ta.focus();
   const start=typeof ta.selectionStart==='number'?ta.selectionStart:ta.value.length;
@@ -1131,21 +1178,24 @@ function insertAtLabCursor(payload){
   }
   ta.value=next;
   try{ ta.setSelectionRange(caret, caret); }catch(e){}
-  // trigger subject refresh
-  refreshLabSubjects();
+  if((taId||'lab-eq')==='lab-eq') refreshLabSubjects();
   ta.focus();
 }
-function bindLabMathPad(){
-  const pad=$('lab-math-pad');
+function bindMathPad(padId, taId){
+  const pad=$(padId);
   if(!pad || pad._bound) return;
   pad._bound=true;
   pad.querySelectorAll('button[data-ins]').forEach(btn=>{
     btn.addEventListener('pointerdown', function(e){
       // prevent textarea blur losing selection on mobile
       e.preventDefault();
-      insertAtLabCursor(btn.getAttribute('data-ins'));
+      insertAtLabCursor(btn.getAttribute('data-ins'), taId);
     });
   });
+}
+function bindLabMathPad(){
+  bindMathPad('lab-math-pad', 'lab-eq');
+  bindMathPad('lab-step-math-pad', 'lab-step-eq');
 }
 
 function openLab(){
@@ -1210,8 +1260,10 @@ function startLabSolve(){
   $('lab-eq').value=eq;
   labState={
     subject, plan, stepIdx:0, history:[{eq:plan.orig, op:null}],
-    waitingOp:true, chosenOp:null
+    waitingOp:true, chosenOp:null, wrongTries:0
   };
+  if($('lab-step-eq')) $('lab-step-eq').value='';
+  if($('lab-step-err')) $('lab-step-err').textContent='';
   $('lab-work-card').classList.remove('hidden');
   $('lab-done').classList.add('hidden');
   $('lab-summary').classList.add('hidden');
@@ -1251,7 +1303,7 @@ function renderLab(){
       b.disabled=false; b.classList.remove('pick-ok','pick-bad');
     });
   } else {
-    $('lab-hint').textContent='你選了「'+S.chosenOp+'」。請選出正確的下一行方程：';
+    $('lab-hint').textContent='你選了「'+S.chosenOp+'」。請自行輸入做完這一步之後的方程。';
     $('lab-choose-op').classList.add('hidden');
     $('lab-choose-line').classList.remove('hidden');
   }
@@ -1273,43 +1325,45 @@ function onLabOp(op){
   });
   labState.chosenOp=op;
   labState.waitingOp=false;
-  const correct=labState.plan.steps[labState.stepIdx].eq.replace(/\s/g,'');
-  const opts=distractorLines(correct, labState.subject);
-  // ensure correct equivalent options
-  const clean=[];
-  for(const o of opts){
-    if(clean.indexOf(o)>=0) continue;
-    clean.push(o);
-  }
-  if(clean.indexOf(correct)<0) clean[0]=correct;
-  $('lab-chips').innerHTML=clean.slice(0,4).map(o=>
-    '<button type="button" class="chip-opt" data-eq="'+o.replace(/"/g,'')+'">'+renderExpr(o)+'</button>'
-  ).join('');
-  $('lab-chips').querySelectorAll('.chip-opt').forEach(btn=>{
-    btn.onclick=()=>onLabLine(btn.getAttribute('data-eq'), btn);
-  });
+  labState.wrongTries=0;
+  if($('lab-step-eq')) $('lab-step-eq').value='';
+  if($('lab-step-err')) $('lab-step-err').textContent='';
+  bindLabMathPad();
   renderLab();
+  setTimeout(()=>{ const ta=$('lab-step-eq'); if(ta) ta.focus(); }, 50);
 }
-function onLabLine(eq, btn){
+function onLabStepCheck(){
   if(!labState||labState.waitingOp) return;
   const need=labState.plan.steps[labState.stepIdx];
+  const typed=normalizeLabEq(($('lab-step-eq')&&$('lab-step-eq').value)||'');
+  if($('lab-step-err')) $('lab-step-err').textContent='';
+  if(!typed || typed.split('=').length!==2){
+    if($('lab-step-err')) $('lab-step-err').textContent='請輸入含有一個「=」的方程';
+    return;
+  }
   const correct=need.eq.replace(/\s/g,'');
-  const ok=eq===correct || eqsEquivalent(need.eq, eq, labState.subject);
-  $('lab-chips').querySelectorAll('.chip-opt').forEach(b=>b.disabled=true);
+  const ok=typed===correct || eqsEquivalent(need.eq, typed, labState.subject);
   if(ok){
-    if(btn) btn.classList.add('correct');
     labState.history.push({eq:need.eq, op:need.op});
     labState.stepIdx++;
     labState.waitingOp=true;
     labState.chosenOp=null;
+    labState.wrongTries=0;
+    if($('lab-step-eq')) $('lab-step-eq').value='';
+    if($('lab-step-err')) $('lab-step-err').textContent='';
+    $('lab-hint').innerHTML='<span style="color:var(--ok)">✓ 正確！繼續下一步。</span>';
     setTimeout(renderLab, 350);
   } else {
-    if(btn) btn.classList.add('wrong');
-    $('lab-hint').textContent='這一行和上一步不等價。再選一次，或看看「'+need.op+'」之後應該變成什麼。';
-    // re-enable after moment
-    setTimeout(()=>{
-      $('lab-chips').querySelectorAll('.chip-opt').forEach(b=>{ b.disabled=false; b.classList.remove('wrong'); });
-    }, 600);
+    labState.wrongTries=(labState.wrongTries||0)+1;
+    const tries=labState.wrongTries;
+    if(tries>=3){
+      $('lab-hint').innerHTML='還是不對。這一步「'+need.op+'」之後應為：<br><b style="font-size:1.05rem">'+renderExpr(need.eq)+'</b><br>提示：'+need.why+' '+OP_HINT[need.op];
+    } else if(tries===2){
+      $('lab-hint').innerHTML='再想想：'+need.why+' '+OP_HINT[need.op]+'<br><span style="color:var(--muted)">檢查括號、加減符號有沒有寫反，等號兩邊有沒有對調錯。</span>';
+    } else {
+      $('lab-hint').innerHTML='這一行和「'+need.op+'」之後應有的方程不等價。<br>提示：'+need.why;
+    }
+    if($('lab-step-err')) $('lab-step-err').textContent='入錯了，請再試一次。';
   }
 }
 
@@ -1387,6 +1441,10 @@ $('lab-reset').onclick=()=>{
   $('lab-err').textContent='';
 };
 $('lab-ops').querySelectorAll('.op-btn').forEach(b=>b.onclick=()=>onLabOp(b.getAttribute('data-op')));
+$('lab-check-step').onclick=onLabStepCheck;
+$('lab-step-eq').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); onLabStepCheck(); }
+});
 
 document.addEventListener('keydown', e=>{
   if($('screen-mc').classList.contains('active') && mcState && !mcState.locked){
