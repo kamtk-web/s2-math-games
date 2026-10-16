@@ -470,7 +470,10 @@ function renderExpr(raw){
 }
 function renderSide(s){
   s=wrapFractions(s);
-  s=s.replace(/([A-Za-z])/g,'<i>$1</i>');
+  // Italicize letters only in text nodes, never inside HTML tag names/attrs
+  s=s.replace(/(^|>)([^<]*)/g, function(_, boundary, text){
+    return boundary + text.replace(/([A-Za-z])/g, '<i>$1</i>');
+  });
   return '<span class="expr">'+s+'</span>';
 }
 function wrapFractions(s){
