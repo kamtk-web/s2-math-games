@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<!-- 代數分式化簡大挑戰（單一檔案，可離線使用）。老師如要設定全班共用的即時龍虎榜，請搜尋「龍虎榜設定」。 -->
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>代數分式化簡大挑戰</title>
+<style>
+:root{
+  --primary:#5b5bf0; --primary-d:#4343c9; --accent:#ff8a3d; --ok:#16a34a; --ok-bg:#dcfce7;
+  --bad:#e11d48; --bad-bg:#ffe4e6; --ink:#1f2340; --muted:#6b7090; --card:#ffffff; --line:#e6e8f5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC","Heiti TC",system-ui,sans-serif;
+  color:var(--ink); min-height:100vh;
+  background:radial-gradient(circle at 10% 10%,#ffe8d6 0,transparent 35%),radial-gradient(circle at 90% 20%,#d9f2ff 0,transparent 40%),radial-gradient(circle at 50% 100%,#e8e3ff 0,transparent 50%),#f4f5ff;
+  -webkit-tap-highlight-color:transparent;
+}
+#app{max-width:860px;margin:0 auto;padding:16px 14px 40px}
+.screen{display:none;animation:fadeIn .35s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:22px;box-shadow:0 10px 30px rgba(60,60,140,.10),0 2px 6px rgba(60,60,140,.06);padding:22px}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- 數學式 ---------- */
+.expr{display:inline-flex;align-items:center;white-space:nowrap;font-family:"Cambria Math","Cambria","Times New Roman","Noto Serif","DejaVu Serif",serif;line-height:1.25}
+.expr i{font-style:italic;padding:0 .04em}
+.expr sup{font-size:.62em;line-height:0;position:relative;top:-.15em;vertical-align:super;font-style:normal;margin-left:.02em}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em}
+.frac>.num{padding:0 .3em .1em;border-bottom:.075em solid currentColor;min-width:100%;text-align:center}
+.frac>.den{padding:.12em .3em 0;text-align:center}
+.expr .sgn{font-style:normal;margin-right:.18em}
+.expr del{text-decoration:none;position:relative;color:#9aa0b8}
+.expr del::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;border-top:2px solid var(--bad);transform:rotate(-14deg)}
+.eqsign{margin:0 .35em;font-family:"Times New Roman",serif}
+
+/* ---------- 開始畫面 ---------- */
+.hero{text-align:center;padding:28px 22px}
+.logo{display:inline-flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:24px;background:linear-gradient(135deg,var(--primary),#8b5cf6);color:#fff;font-size:1.7rem;box-shadow:0 8px 20px rgba(91,91,240,.35);animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+h1{font-size:clamp(1.6rem,5vw,2.2rem);margin:16px 0 6px;letter-spacing:.04em}
+.sub{color:var(--muted);margin:0 0 20px}
+.levels{display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:left}
+.level-card{border:2px solid var(--line);background:#fff;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:6px;transition:transform .15s,box-shadow .15s,border-color .15s;color:var(--ink)}
+.level-card:hover,.level-card:focus-visible{transform:translateY(-3px);box-shadow:0 10px 24px rgba(60,60,140,.14);border-color:var(--c);outline:none}
+.level-card .lv-top{display:flex;align-items:center;justify-content:space-between}
+.lv-name{font-size:1.25rem;font-weight:700;color:var(--c)}
+.lv-tag{font-size:.8rem;background:var(--cb);color:var(--c);padding:2px 10px;border-radius:99px;font-weight:600}
+.lv-desc{font-size:.92rem;color:var(--muted)}
+.lv-eg{font-size:1.05rem;padding:6px 0;color:var(--ink)}
+.lv-best{font-size:.85rem;color:var(--muted)}
+.lv-best b{color:var(--ink)}
+.rules{margin-top:20px;background:#f6f7ff;border-radius:16px;padding:14px 16px;text-align:left;font-size:.93rem;color:#444a6b;line-height:1.7}
+.rules b{color:var(--primary)}
+
+/* ---------- 遊戲畫面 ---------- */
+.hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.icon-btn{border:none;background:#fff;width:40px;height:40px;border-radius:12px;font-size:1.1rem;box-shadow:0 2px 8px rgba(60,60,140,.1)}
+.badge{background:var(--primary);color:#fff;border-radius:99px;padding:6px 14px;font-weight:700;font-size:.9rem}
+.hud-item{background:#fff;border-radius:12px;padding:7px 12px;font-size:.9rem;box-shadow:0 2px 8px rgba(60,60,140,.08);position:relative}
+.hud-item b{font-size:1.1rem;color:var(--primary);margin-left:4px}
+.streak{color:var(--muted)}
+.streak.hot{color:#fff;background:linear-gradient(135deg,#ff8a3d,#ff4d6d);animation:pulse .5s}
+.hearts{margin-left:auto;font-size:1.25rem;letter-spacing:2px}
+.hearts .lost{filter:grayscale(1);opacity:.3}
+.hearts .breaking{display:inline-block;animation:heartBreak .6s}
+@keyframes heartBreak{30%{transform:scale(1.5)}100%{transform:scale(1);filter:grayscale(1);opacity:.3}}
+.pop{position:absolute;right:6px;top:-6px;color:var(--ok);font-weight:800;animation:popUp 1s forwards;pointer-events:none}
+@keyframes popUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-28px)}}
+.progress{position:relative;height:26px;background:#fff;border-radius:99px;overflow:hidden;box-shadow:inset 0 0 0 2px var(--line);margin-bottom:14px}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#7c7cf7,#5b5bf0);border-radius:99px;transition:width .5s ease}
+#progress-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#3a3f66;mix-blend-mode:multiply}
+.qcard{position:relative}
+.qhead{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-weight:600}
+.timer{font-variant-numeric:tabular-nums;background:#eef0ff;color:var(--primary);padding:4px 12px;border-radius:99px}
+.timer.warn{background:var(--bad-bg);color:var(--bad);animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.07)}}
+.timebar{height:6px;background:#eef0ff;border-radius:9px;margin:10px 0 6px;overflow:hidden}
+#timebar-fill{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#84cc16);border-radius:9px}
+#timebar-fill.mid{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+#timebar-fill.low{background:linear-gradient(90deg,#e11d48,#fb7185)}
+.prompt{margin-top:10px;color:var(--muted);font-weight:600}
+.question{display:flex;justify-content:center;align-items:center;font-size:clamp(1.7rem,7vw,2.5rem);padding:14px 0 22px;overflow-x:auto}
+.question.enter{animation:qIn .4s ease}
+@keyframes qIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{position:relative;display:flex;align-items:center;gap:12px;min-height:88px;padding:10px 14px;border:2px solid var(--line);border-radius:16px;background:#fbfbff;color:var(--ink);transition:transform .12s,border-color .15s,background .15s;overflow-x:auto;text-align:left}
+.opt:hover:not(:disabled){border-color:var(--primary);background:#f3f3ff;transform:translateY(-2px)}
+.opt:disabled{cursor:default}
+.opt-label{flex:none;width:32px;height:32px;border-radius:10px;background:#eceeff;color:var(--primary);font-weight:800;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif}
+.opt-expr{flex:1;display:flex;justify-content:center;font-size:clamp(1.15rem,4.6vw,1.45rem)}
+.opt.correct{border-color:var(--ok);background:var(--ok-bg);animation:bounce .5s}
+.opt.correct .opt-label{background:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg);animation:shake .45s}
+.opt.wrong .opt-label{background:var(--bad);color:#fff}
+.opt.dim{opacity:.55}
+@keyframes bounce{30%{transform:scale(1.05)}60%{transform:scale(.98)}100%{transform:scale(1)}}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.feedback{margin-top:14px;animation:slideUp .35s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fb-title{font-size:1.25rem;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fb-title.ok{color:var(--ok)} .fb-title.bad{color:var(--bad)}
+.fb-title small{font-size:.9rem;font-weight:600;color:var(--muted)}
+.fb-answer{margin:6px 0 10px;font-size:1rem;color:#444a6b;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fb-answer .expr{font-size:1.25rem}
+.steps{background:#f7f8ff;border-radius:16px;padding:12px 16px;margin-bottom:14px}
+.steps h4{margin:2px 0 8px;font-size:.95rem;color:var(--primary)}
+.step{padding:8px 0;border-top:1px dashed #d9dcf0}
+.step:first-of-type{border-top:none}
+.step-t{font-size:.93rem;color:#444a6b;margin-bottom:4px;line-height:1.6}
+.step-t .expr{font-size:1.18em}
+.step-e{font-size:1.25rem;overflow-x:auto;padding:2px 0 2px 8px}
+.btn{border:none;border-radius:14px;padding:13px 22px;font-size:1.05rem;font-weight:700;transition:transform .12s,box-shadow .12s}
+.btn.primary{background:linear-gradient(135deg,var(--primary),#7c5cf6);color:#fff;box-shadow:0 6px 16px rgba(91,91,240,.35)}
+.btn.ghost{background:#eef0ff;color:var(--primary)}
+.btn:hover{transform:translateY(-2px)}
+#btn-next{width:100%}
+
+/* ---------- 結束畫面 ---------- */
+.end{text-align:center}
+.end-emoji{font-size:3.4rem;animation:float 3s ease-in-out infinite}
+.end h2{margin:6px 0}
+.stars{font-size:2rem;color:#fbbf24;letter-spacing:6px;min-height:2.4rem}
+.stars .off{color:#e2e4f0}
+.new-record{display:inline-block;background:linear-gradient(135deg,#fbbf24,#ff8a3d);color:#fff;font-weight:800;padding:6px 16px;border-radius:99px;margin:6px 0;animation:pulse 1.2s infinite}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.stats div{background:#f6f7ff;border-radius:14px;padding:12px 6px;display:flex;flex-direction:column;gap:4px}
+.stats span{font-size:.82rem;color:var(--muted)}
+.stats b{font-size:1.3rem;color:var(--ink)}
+.review{text-align:left;background:#fafaff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:16px}
+.review summary{cursor:pointer;font-weight:700;color:var(--primary)}
+.review ol{padding-left:22px;margin:8px 0 0}
+.review li{padding:8px 0;border-top:1px dashed #e0e2f2;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:1.05rem}
+.review li:first-child{border-top:none}
+.review .mark{font-weight:800;font-family:system-ui,sans-serif}
+.review .mark.ok{color:var(--ok)} .review .mark.bad{color:var(--bad)}
+.end-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.end-btns .btn{min-width:150px}
+.confetti{position:fixed;top:-20px;width:10px;height:14px;border-radius:2px;pointer-events:none;z-index:50;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+/* ---------- 名字 ---------- */
+.name-row{max-width:420px;margin:0 auto 18px;text-align:left}
+.name-row label{display:block;font-weight:700;margin-bottom:6px}
+.name-row input,.lab-field input,.fx-row input{width:100%;font:inherit;font-size:1.05rem;padding:11px 14px;border:2px solid var(--line);border-radius:14px;background:#fbfbff;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+.name-row input:focus,.lab-field input:focus,.fx-row input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(91,91,240,.12)}
+.name-row.err input{border-color:var(--bad);animation:shake .45s}
+.name-err{color:var(--bad);font-size:.88rem;min-height:1.2em;margin-top:4px}
+.class-row{max-width:420px;margin:0 auto 18px;text-align:left}
+.class-row label{display:block;font-weight:700;margin-bottom:8px}
+.class-pills{display:flex;gap:8px;flex-wrap:wrap}
+.class-pills button{flex:1;min-width:4.5em;border:2px solid var(--line);background:#fbfbff;border-radius:14px;padding:10px 12px;font-size:1.05rem;font-weight:800;color:var(--ink);transition:border-color .15s,background .15s,box-shadow .15s}
+.class-pills button:hover{border-color:var(--primary);background:#f3f3ff}
+.class-pills button.on{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(91,91,240,.28)}
+.class-row.err .class-pills{animation:shake .45s}
+.class-row.err .class-pills button{border-color:var(--bad)}
+.hud-name{font-size:.88rem;color:var(--muted);max-width:12em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.end-player{color:var(--muted);font-weight:600;margin-bottom:4px}
+.board-class-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.board-class-tabs button{border:none;background:#e8f5e9;color:#166534;border-radius:99px;padding:5px 12px;font-size:.85rem;font-weight:700}
+.board-class-tabs button.on{background:#16a34a;color:#fff}
+.board-class-tabs button[data-c="all"]{background:#eef0ff;color:var(--primary)}
+.board-class-tabs button[data-c="all"].on{background:var(--primary);color:#fff}
+.board-class-tabs button[data-c="none"]{background:#f1f5f9;color:#475569}
+.board-class-tabs button[data-c="none"].on{background:#64748b;color:#fff}
+.board-table td.cl span{font-size:.75rem;padding:2px 7px;border-radius:99px;background:#dcfce7;color:#166534;font-weight:700;white-space:nowrap}
+.board-table td.cl span.none{background:#f1f5f9;color:#64748b;font-weight:600}
+.conn.warn-rules{background:#fee2e2;color:#b91c1c}.conn.warn-rules::before{background:#ef4444}
+.board-rules-note{background:#fff1f2;color:#9f1239;border-radius:12px;padding:8px 12px;font-size:.85rem;margin:0 0 8px;font-weight:600}
+/* ---------- 實驗室入口 ---------- */
+.lab-entry{margin-top:14px;width:100%;display:flex;align-items:center;gap:14px;text-align:left;border:2px dashed #c7c9f7;background:linear-gradient(135deg,#f5f3ff,#eef6ff);border-radius:18px;padding:14px 16px;color:var(--ink);transition:transform .15s,box-shadow .15s}
+.lab-entry:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(60,60,140,.12)}
+.lab-icon{font-size:2rem}
+.lab-text{flex:1;display:flex;flex-direction:column;gap:3px}
+.lab-text b{font-size:1.15rem;color:#6d28d9}
+.lab-text small{color:var(--muted);font-size:.88rem;line-height:1.5}
+.lab-arrow{font-size:1.3rem;color:#6d28d9}
+/* ---------- 龍虎榜 ---------- */
+.board-card{margin-top:16px}
+.board-inline{margin:14px 0 6px;text-align:left;background:#fafaff;border:1px solid var(--line);border-radius:16px;padding:12px}
+.board-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.board-head h3{margin:0;font-size:1.15rem}
+.conn{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:99px;background:#eef0f7;color:#555b7a;display:inline-flex;align-items:center;gap:5px}
+.conn::before{content:"";width:8px;height:8px;border-radius:50%;background:#9aa0b8}
+.conn.live{background:#dcfce7;color:#15803d}.conn.live::before{background:#22c55e;animation:pulse 1.5s infinite}
+.conn.wait{background:#fef3c7;color:#92400e}.conn.wait::before{background:#f59e0b}
+.board-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.board-tabs button{border:none;background:#eef0ff;color:var(--primary);border-radius:99px;padding:5px 12px;font-size:.85rem;font-weight:600}
+.board-tabs button.on{background:var(--primary);color:#fff}
+.board-table{width:100%;border-collapse:collapse;font-size:.92rem}
+.board-table th{font-size:.78rem;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:2px solid var(--line)}
+.board-table td{padding:7px 6px;border-bottom:1px solid #eef0f7}
+.board-table td.rk{width:2.6em;text-align:center;font-weight:800;color:var(--muted)}
+.board-table td.nm{font-weight:700;max-width:10em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-table td.sc{font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums}
+.board-table td.md span{font-size:.78rem;padding:2px 8px;border-radius:99px;background:#f1f2fb;white-space:nowrap}
+.board-table td.dt{color:var(--muted);font-size:.82rem;white-space:nowrap}
+.board-table tr.me td{background:#fff7d6}
+.board-table tr.me{animation:rowGlow 1.6s ease 2}
+@keyframes rowGlow{50%{filter:brightness(.93)}}
+.board-table tr.gap td{text-align:center;color:var(--muted);padding:2px}
+.board-empty{text-align:center;color:var(--muted);padding:18px 6px}
+.board-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:.8rem;color:var(--muted)}
+.link-btn{border:none;background:none;color:var(--muted);text-decoration:underline;font-size:.8rem;padding:4px}
+.link-btn:hover{color:var(--bad)}
+.end-rank{margin:6px auto 0;font-weight:800;color:#b45309;background:#fff7d6;border-radius:14px;padding:10px 14px;display:inline-block}
+/* ---------- 解題實驗室 ---------- */
+.lab-badge{background:linear-gradient(135deg,#7c3aed,#5b5bf0)}
+.lab-card{margin-bottom:14px;animation:slideUp .35s ease}
+.lab-h{margin:0 0 6px}
+.lab-help{color:#4b5072;font-size:.92rem;line-height:1.7;margin:0 0 10px}
+.lab-help code,.lab-tip code{background:#eef0ff;color:#4338ca;border-radius:6px;padding:1px 6px;font-size:.92em}
+.examples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;font-size:.9rem;color:var(--muted)}
+.examples button{border:1px solid #d9dcf5;background:#fff;border-radius:99px;padding:4px 10px;font-size:.92rem;color:var(--ink)}
+.examples button:hover{border-color:var(--primary);background:#f3f3ff}
+.examples .expr{font-size:.95rem}
+.lab-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lab-field span{display:block;font-weight:700;margin-bottom:4px}
+.lab-field input,.fx-row input{font-family:"Consolas","Menlo","DejaVu Sans Mono",monospace}
+.lab-preview{min-height:96px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:12px 0;background:#f7f8ff;border-radius:16px;padding:10px;overflow-x:auto}
+.muted{color:var(--muted);font-size:.95rem}
+.lab-msg{color:var(--bad);min-height:1.3em;margin-bottom:10px;font-size:.95rem}
+.step-head{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:800;margin-bottom:8px}
+.step-no{width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:1rem}
+.lab-orig{display:flex;justify-content:center;font-size:1.8rem;padding:8px 0;overflow-x:auto}
+.lab-tip{background:#fff7e6;color:#8a5300;border-radius:12px;padding:8px 12px;font-size:.93rem;margin:8px 0 12px}
+.fx-row{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin-bottom:12px}
+.fx-row label{font-weight:700;white-space:nowrap}
+.fx-pv{grid-column:2;font-size:1.25rem;min-height:1.6em;overflow-x:auto;padding:2px 0}
+.fx-fb{grid-column:1/-1;font-size:.93rem;line-height:1.6}
+.fx-fb.center{text-align:center;min-height:1.6em;margin:6px 0}
+.fb-ok{color:var(--ok);font-weight:700}
+.fb-bad{color:var(--bad);font-weight:600}
+.fb-info{color:#4b5072}
+.fx-row input.ok{border-color:var(--ok);background:#f3fdf6}
+.fx-row input.bad{border-color:var(--bad);background:#fff6f7}
+.lab-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.lab-btns .btn{padding:11px 18px;font-size:1rem}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.hintbox{margin-top:12px;background:#f2f4ff;border-left:4px solid var(--primary);border-radius:10px;padding:10px 14px;font-size:.94rem;line-height:1.8}
+.hintbox b{color:var(--primary)}
+.chipfrac{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 0;overflow-x:auto}
+.chip-sign{font-size:2rem;font-family:"Times New Roman",serif}
+.chip-col{display:flex;flex-direction:column;align-items:center;min-width:60%}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:6px}
+.chip-bar{height:3px;background:var(--ink);width:100%;border-radius:2px;margin:4px 0}
+.chip{border:2px solid #d9dcf5;background:#fff;border-radius:14px;padding:6px 12px;font-size:1.35rem;min-width:46px;transition:transform .12s,border-color .12s,background .12s;color:var(--ink)}
+.chip:hover:not(:disabled){border-color:var(--primary);transform:translateY(-2px)}
+.chip.sel{border-color:var(--primary);background:#ecebff;box-shadow:0 0 0 4px rgba(91,91,240,.18)}
+.chip.dead{background:#fafafa;border-style:dashed;cursor:default}
+.chip.hintme{animation:pulse .8s 3;border-color:#f59e0b}
+.chip.nope{animation:shake .45s;border-color:var(--bad)}
+.chip-one{font-size:1.35rem;font-family:"Times New Roman",serif;padding:6px}
+.lab-result{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:1rem;margin-bottom:12px}
+.lab-result .expr{font-size:1.4rem}
+.lab-solution{margin-top:12px;background:#f3fdf6;border:1px solid #bbf7d0;border-radius:16px;padding:12px 16px}
+.lab-solution h4{margin:0 0 8px;color:var(--ok)}
+.sol-line{display:flex;align-items:center;gap:6px;font-size:1.3rem;padding:6px 0;overflow-x:auto;flex-wrap:nowrap}
+.sol-line .lbl{font-size:.85rem;color:var(--muted);min-width:5.5em;font-family:inherit}
+@media (max-width:600px){
+  .lab-fields{grid-template-columns:1fr}
+  .board-table .col-date,.board-table td.dt{display:none}
+  .board-table{font-size:.86rem}
+  .chip{font-size:1.15rem;padding:5px 9px}
+  .lab-orig{font-size:1.45rem}
+  .sol-line{font-size:1.1rem}
+  .sol-line .lbl{min-width:4.5em}
+}
+
+@media (max-width:600px){
+  #app{padding:10px 10px 30px}
+  .card{padding:16px;border-radius:18px}
+  .levels{grid-template-columns:1fr}
+  .options{grid-template-columns:1fr}
+  .opt{min-height:74px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .hud{gap:6px}
+  .hud-item{padding:6px 9px;font-size:.82rem}
+  .hearts{font-size:1.05rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 開始畫面 -->
+  <section id="screen-start" class="screen active">
+    <div class="card hero">
+      <div class="logo"><span class="expr" style="font-size:1.3rem"><span class="frac"><span class="num"><i>a</i></span><span class="den"><i>b</i></span></span></span></div>
+      <h1>代數分式化簡大挑戰</h1>
+      <p class="sub">把代數分式化至最簡形式，看看你能取得多少分！</p>
+      <div class="name-row" id="name-row">
+        <label for="player-name">👤 你的名字</label>
+        <input id="player-name" type="text" maxlength="16" placeholder="請輸入名字（最多 16 個字）" autocomplete="off" enterkeyhint="done">
+        <div class="name-err" id="name-err" role="alert"></div>
+      </div>
+      <div class="class-row" id="class-row">
+        <label>🏫 你的班別</label>
+        <div class="class-pills" id="class-pills" role="group" aria-label="班別">
+          <button type="button" data-class="2A">2A</button>
+          <button type="button" data-class="2B">2B</button>
+          <button type="button" data-class="2C">2C</button>
+        </div>
+        <div class="name-err" id="class-err" role="alert"></div>
+      </div>
+      <div class="levels">
+        <button class="level-card" data-level="1" style="--c:#16a34a;--cb:#dcfce7">
+          <span class="lv-top"><span class="lv-name">初級</span><span class="lv-tag">單項式</span></span>
+          <span class="lv-desc">約去數字的公因數，再用指數定律約簡變數，例如 <i>x</i><sup>3</sup> ÷ <i>x</i> = <i>x</i><sup>2</sup>。</span>
+          <span class="lv-eg" id="eg-1"></span>
+          <span class="lv-best">最高分：<b data-best="1">—</b></span>
+        </button>
+        <button class="level-card" data-level="2" style="--c:#2563eb;--cb:#dbeafe">
+          <span class="lv-top"><span class="lv-name">中級</span><span class="lv-tag">抽公因式</span></span>
+          <span class="lv-desc">先抽出公因式，例如 2<i>x</i> + 4 = 2(<i>x</i> + 2)，再約去相同的因式。</span>
+          <span class="lv-eg" id="eg-2"></span>
+          <span class="lv-best">最高分：<b data-best="2">—</b></span>
+        </button>
+        <button class="level-card" data-level="3" style="--c:#dc2626;--cb:#fee2e2">
+          <span class="lv-top"><span class="lv-name">高級</span><span class="lv-tag">十字相乘・平方差</span></span>
+          <span class="lv-desc">把 <i>x</i><sup>2</sup> + <i>bx</i> + <i>c</i> 或 <i>x</i><sup>2</sup> − <i>a</i><sup>2</sup> 因式分解，再約去相同的因式。</span>
+          <span class="lv-eg" id="eg-3"></span>
+          <span class="lv-best">最高分：<b data-best="3">—</b></span>
+        </button>
+        <button class="level-card" data-level="mix" style="--c:#9333ea;--cb:#f3e8ff">
+          <span class="lv-top"><span class="lv-name">綜合挑戰</span><span class="lv-tag">隨機混合</span></span>
+          <span class="lv-desc">三個程度的題目隨機出現，考驗你的綜合能力。</span>
+          <span class="lv-eg" id="eg-mix"></span>
+          <span class="lv-best">最高分：<b data-best="mix">—</b></span>
+        </button>
+      </div>
+      <button class="lab-entry" id="btn-lab">
+        <span class="lab-icon">🔬</span>
+        <span class="lab-text"><b>解題實驗室</b><small>自行輸入任何代數分式，按步驟因式分解、約去公因式，系統會逐步檢查。</small></span>
+        <span class="lab-arrow">➜</span>
+      </button>
+      <div class="rules">
+        <b>玩法說明</b><br>
+        ・每局 <b>10</b> 題，共有 <b>3</b> 條命 ❤️❤️❤️，答錯或超時便會失去一條命。<br>
+        ・每題均有時限，答得越快，時間獎勵越多；連續答對更可獲得<b>連擊加分</b>。<br>
+        ・每次作答後會顯示詳細步驟，幫助你掌握化簡方法；成績會登上<b>龍虎榜</b>。<br>
+        ・電腦上可按鍵盤 <b>1</b>–<b>4</b>（或 A–D）選擇答案，按 Enter 進入下一題。
+      </div>
+    </div>
+    <div class="card board-card" id="board-start"></div>
+  </section>
+
+
+  <!-- 遊戲畫面 -->
+  <section id="screen-game" class="screen">
+    <header class="hud">
+      <button class="icon-btn" id="btn-quit" title="返回主頁" aria-label="返回主頁">🏠</button>
+      <span class="badge" id="hud-level">初級</span>
+      <span class="hud-name" id="hud-name"></span>
+      <div class="hud-item">得分<b id="hud-score">0</b></div>
+      <div class="hud-item streak" id="hud-streak">連擊 ×0</div>
+      <div class="hearts" id="hud-lives" aria-label="生命值"></div>
+      <button class="icon-btn" id="btn-sound" title="音效開關" aria-label="音效開關">🔊</button>
+    </header>
+    <div class="progress"><div class="progress-fill" id="progress-fill"></div><span id="progress-text">第 1 / 10 題</span></div>
+    <div class="card qcard">
+      <div class="qhead"><span id="q-num">第 1 題</span><span class="timer" id="timer">⏱ 0</span></div>
+      <div class="timebar"><div id="timebar-fill"></div></div>
+      <div class="prompt">化簡下列分式：</div>
+      <div class="question" id="question"></div>
+      <div class="options" id="options"></div>
+    </div>
+    <div class="card feedback hidden" id="feedback">
+      <div class="fb-title" id="fb-title"></div>
+      <div class="fb-answer" id="fb-answer"></div>
+      <div class="steps"><h4>📝 解題步驟</h4><div id="fb-steps"></div></div>
+      <button class="btn primary" id="btn-next">下一題 ➜</button>
+    </div>
+  </section>
+
+  <!-- 結束畫面 -->
+  <section id="screen-end" class="screen">
+    <div class="card end">
+      <div class="end-emoji" id="end-emoji">🏆</div>
+      <h2 id="end-title">完成挑戰！</h2>
+      <div class="end-player" id="end-player"></div>
+      <div class="stars" id="end-stars"></div>
+      <div class="new-record hidden" id="end-record">🎉 打破你的最高分紀錄！</div>
+      <div class="stats">
+        <div><span>總得分</span><b id="end-score">0</b></div>
+        <div><span>答對題數</span><b id="end-correct">0</b></div>
+        <div><span>準確率</span><b id="end-acc">0%</b></div>
+        <div><span>最高連擊</span><b id="end-streak">0</b></div>
+        <div><span>用時</span><b id="end-time">0 秒</b></div>
+        <div><span>最高分紀錄</span><b id="end-best">0</b></div>
+      </div>
+      <div class="end-rank hidden" id="end-rank"></div>
+      <div class="board-inline" id="board-end"></div>
+      <details class="review"><summary>查看本局題目及答案</summary><ol id="end-review"></ol></details>
+      <div class="end-btns">
+        <button class="btn primary" id="btn-again">再玩一次</button>
+        <button class="btn ghost" id="btn-home">選擇難度</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 解題實驗室 -->
+  <section id="screen-lab" class="screen">
+    <header class="hud">
+      <button class="icon-btn" id="lab-home" title="返回主頁" aria-label="返回主頁">🏠</button>
+      <span class="badge lab-badge">🔬 解題實驗室</span>
+    </header>
+    <div class="card lab-card" id="lab-input">
+      <h3 class="lab-h">輸入一個代數分式</h3>
+      <p class="lab-help">用 <code>^</code> 表示指數（如 <code>x^2</code>）；乘號可省略（如 <code>2x</code>、<code>3ab</code>、<code>(x+1)(x-2)</code>）。也可以在「分子」一欄直接輸入整個分式，例如 <code>(x^2-9)/(x^2+3x)</code>。</p>
+      <div class="examples" id="lab-examples"><span>例題：</span></div>
+      <div class="lab-fields">
+        <label class="lab-field"><span>分子</span><input id="lab-num" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="例如 x^2-9"></label>
+        <label class="lab-field"><span>分母</span><input id="lab-den" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="例如 x^2+3x"></label>
+      </div>
+      <div class="lab-preview" id="lab-preview"><span class="muted">預覽會在這裏顯示</span></div>
+      <div class="lab-msg" id="lab-msg" role="alert"></div>
+      <button class="btn primary" id="lab-start">開始化簡 ➜</button>
+    </div>
+
+    <div class="card lab-card hidden" id="lab-step1">
+      <div class="step-head"><span class="step-no">1</span>因式分解</div>
+      <div class="lab-orig" id="lab-orig1"></div>
+      <p class="lab-tip">💡 提示：先把分子和分母因式分解。</p>
+      <div class="fx-row">
+        <label for="lab-fn">分子 =</label>
+        <input id="lab-fn" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="例如 (x+3)(x-3)">
+        <div class="fx-pv" id="lab-fn-pv"></div>
+        <div class="fx-fb" id="lab-fn-fb"></div>
+      </div>
+      <div class="fx-row">
+        <label for="lab-fd">分母 =</label>
+        <input id="lab-fd" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="例如 x(x+3)">
+        <div class="fx-pv" id="lab-fd-pv"></div>
+        <div class="fx-fb" id="lab-fd-fb"></div>
+      </div>
+      <div class="lab-btns">
+        <button class="btn primary" id="lab-check1">檢查</button>
+        <button class="btn ghost" id="lab-hint1">提示 1</button>
+        <button class="btn primary hidden" id="lab-next1">下一步：約去公因式 ➜</button>
+      </div>
+      <div class="hintbox hidden" id="lab-hintbox"></div>
+    </div>
+
+    <div class="card lab-card hidden" id="lab-step2">
+      <div class="step-head"><span class="step-no">2</span>約去公因式</div>
+      <p class="lab-tip">💡 下一步：約去分子和分母中相同的因式。先點選分子的一個因式，再點選分母中相同的因式。</p>
+      <div class="chipfrac">
+        <span class="chip-sign hidden" id="lab-sign">−</span>
+        <div class="chip-col">
+          <div class="chips" id="lab-chips-num"></div>
+          <div class="chip-bar"></div>
+          <div class="chips" id="lab-chips-den"></div>
+        </div>
+      </div>
+      <div class="fx-fb center" id="lab-cancel-fb"></div>
+      <div class="lab-btns">
+        <button class="btn ghost" id="lab-undo">↶ 復原</button>
+        <button class="btn ghost" id="lab-hint2">提示</button>
+        <button class="btn primary" id="lab-next2" disabled>下一步 ➜</button>
+      </div>
+    </div>
+
+    <div class="card lab-card hidden" id="lab-step3">
+      <div class="step-head"><span class="step-no">3</span>寫出最簡分式</div>
+      <div class="lab-result">根據你的約簡，結果是：<span id="lab-result"></span></div>
+      <div class="fx-row">
+        <label for="lab-final">答案 =</label>
+        <input id="lab-final" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="例如 (x-3)/x">
+        <div class="fx-pv" id="lab-final-pv"></div>
+        <div class="fx-fb" id="lab-final-fb"></div>
+      </div>
+      <div class="lab-btns">
+        <button class="btn ghost" id="lab-fill">填入約簡結果</button>
+        <button class="btn primary" id="lab-check3">確認答案</button>
+      </div>
+      <div class="lab-solution hidden" id="lab-solution"></div>
+      <div class="lab-btns hidden" id="lab-again-row">
+        <button class="btn primary" id="lab-again">再試另一題</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script id="config">
+/* ============================================================================
+ *  ★★★ 龍虎榜設定（老師可修改這一段） ★★★
+ * ----------------------------------------------------------------------------
+ *  FIREBASE_CONFIG = null  →「本機模式」：龍虎榜只儲存在這部裝置的瀏覽器內（localStorage），
+ *                           完全離線可用；同一部電腦開啟多個分頁亦會即時同步。
+ *  FIREBASE_CONFIG 填上 databaseURL →「即時連線模式」：全班不同裝置共用同一個龍虎榜，
+ *                           成績即時更新。網頁直接使用 Firebase Realtime Database 的 REST API
+ *                           及即時串流（EventSource），不需要載入任何程式庫，也不需要 apiKey。
+ *                           若連線失敗，會自動改用本機模式，並每隔一段時間重新嘗試連線。
+ *
+ *  設定方法（只需做一次）：
+ *    1. 到 https://console.firebase.google.com 建立專案。
+ *    2.「建構」→「Realtime Database」→「建立資料庫」，複製資料庫網址（…firebaseio.com 或 …firebasedatabase.app）。
+ *    3. 把網址填入下面的 databaseURL。
+ *    4. 在 Realtime Database 的「規則」分頁貼上以下規則並按「發布」
+ *       （「測試模式」規則約 30 天後會失效，屆時遊戲會無法寫入）：
+ *       {
+ *         "rules": {
+ *           ".read": false,
+ *           ".write": false,
+ *           "leaderboard": {
+ *             ".read": true,
+ *             ".indexOn": ["score"],
+ *             "$id": {
+ *               ".write": "!data.exists() && newData.exists() && $id.matches(/^[a-z0-9]{8,24}$/)",
+ *               ".validate": "newData.hasChildren(['name', 'score', 'mode', 'acc', 'correct', 'answered', 'ts', 'class'])",
+ *               "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 32" },
+ *               "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3500" },
+ *               "mode": { ".validate": "newData.isString() && newData.val().matches(/^(1|2|3|mix)$/)" },
+ *               "acc": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+ *               "correct": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
+ *               "answered": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10" },
+ *               "ts": { ".validate": "newData.isNumber() && newData.val() <= now" },
+ *               "class": { ".validate": "newData.isString() && newData.val().matches(/^(2A|2B|2C)$/)" },
+ *               "$other": { ".validate": false }
+ *             }
+ *           }
+ *         }
+ *       }
+ *       （規則只容許「新增」成績，不可修改或刪除；老師可在控制台刪除 leaderboard 節點以清除龍虎榜。）
+ *       ★ 分班龍虎榜：每筆成績須含 class（"2A"|"2B"|"2C"）。若規則尚未加入 class 驗證，
+ *         網上寫入會被拒絕；遊戲會改存本機並提示「請老師更新數據庫規則以支援分班」。
+ *         舊成績沒有 class 欄位者仍可在「全部／未分班」中顯示。
+ *    5. 改回本機模式：把下面一行改為  const FIREBASE_CONFIG = null;
+ * ========================================================================== */
+const FIREBASE_CONFIG = {
+  databaseURL: 'https://s2oi-666dd-default-rtdb.firebaseio.com',
+  projectId: 's2oi-666dd'
+};
+const LEADERBOARD_PATH = 'leaderboard';           // 資料庫中的路徑
+/* ============================ 設定完畢 ============================ */
+</script>
+
+<script id="board-core">
+/* ================= 龍虎榜：Firebase 即時串流資料合併（不依賴 DOM） ================= */
+var BoardCore = (function () {
+  'use strict';
+  function copy(o) { var r = {}; if (o && typeof o === 'object') for (var k in o) r[k] = o[k]; return r; }
+  // 依 Firebase REST 串流的 put / patch 事件更新 { key: entry } 物件
+  function applyEvent(map, type, msg) {
+    var out = copy(map);
+    if (!msg || typeof msg.path !== 'string') return out;
+    var parts = msg.path.split('/').filter(Boolean), data = msg.data;
+    if (type === 'put') {
+      if (!parts.length) return data && typeof data === 'object' ? copy(data) : {};
+      if (parts.length === 1) { if (data === null) delete out[parts[0]]; else out[parts[0]] = data; return out; }
+      var e = copy(out[parts[0]]);
+      if (data === null) delete e[parts[1]]; else e[parts[1]] = data;
+      if (Object.keys(e).length) out[parts[0]] = e; else delete out[parts[0]];
+      return out;
+    }
+    if (type === 'patch' && data && typeof data === 'object') {
+      if (!parts.length) { for (var k in data) { if (data[k] === null) delete out[k]; else out[k] = data[k]; } return out; }
+      var o = copy(out[parts[0]]);
+      for (var f in data) { if (data[f] === null) delete o[f]; else o[f] = data[f]; }
+      out[parts[0]] = o;
+      return out;
+    }
+    return out;
+  }
+  return { applyEvent: applyEvent };
+})();
+if (typeof module !== 'undefined') module.exports = BoardCore;
+</script>
+
+<script id="engine">
+/* ================= 題目產生及數學引擎（不依賴 DOM） ================= */
+var Engine = (function () {
+  'use strict';
+  var MINUS = '\u2212';
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = a % b; a = b; b = t; } return a; }
+  function ri(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function nz(a, b) { var v; do { v = ri(a, b); } while (v === 0); return v; }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  /* ---------- 多項式：項 {c: 係數, e: [第一變數指數, 第二變數指數]} ---------- */
+  function T(c, i, j) { return { c: c, e: [i || 0, j || 0] }; }
+  function P(terms) {
+    var m = {}, order = [];
+    terms.forEach(function (t) {
+      if (!t.c) return;
+      var k = t.e[0] + ',' + t.e[1];
+      if (!(k in m)) { m[k] = 0; order.push(k); }
+      m[k] += t.c;
+    });
+    var out = [];
+    order.forEach(function (k) { if (m[k] !== 0) { var e = k.split(',').map(Number); out.push({ c: m[k], e: e }); } });
+    out.sort(function (a, b) { return (b.e[0] - a.e[0]) || (b.e[1] - a.e[1]); });
+    return out;
+  }
+  function mul(p, q) { var r = []; p.forEach(function (a) { q.forEach(function (b) { r.push({ c: a.c * b.c, e: [a.e[0] + b.e[0], a.e[1] + b.e[1]] }); }); }); return P(r); }
+  function addP(p, q) { return P(p.concat(q)); }
+  function neg(p) { return p.map(function (t) { return { c: -t.c, e: t.e.slice() }; }); }
+  function prod(k, fs) { var r = [T(k)]; fs.forEach(function (f) { r = mul(r, f); }); return r; }
+  function key(p) { return p.map(function (t) { return t.c + ':' + t.e.join('.'); }).join('|'); }
+  function isConst(p) { return p.length === 1 && p[0].e[0] === 0 && p[0].e[1] === 0; }
+  function evalP(p, x, y) { return p.reduce(function (s, t) { return s + t.c * Math.pow(x, t.e[0]) * Math.pow(y, t.e[1]); }, 0); }
+
+  /* ---------- 顯示 ---------- */
+  function varHTML(e, V) {
+    var s = '';
+    for (var i = 0; i < 2; i++) if (e[i] > 0) { s += '<i>' + V[i] + '</i>'; if (e[i] > 1) s += '<sup>' + e[i] + '</sup>'; }
+    return s;
+  }
+  function termBody(t, V) { var v = varHTML(t.e, V), a = Math.abs(t.c); if (v === '') return String(a); return (a === 1 ? '' : String(a)) + v; }
+  function polyHTML(p, V) {
+    var terms = p.slice();
+    if (terms.length === 2 && terms[0].c < 0 && terms[1].c > 0) terms = [terms[1], terms[0]]; // 3 − x 而非 −x + 3
+    var s = '';
+    terms.forEach(function (t, i) {
+      if (i === 0) s += (t.c < 0 ? MINUS : '') + termBody(t, V);
+      else s += (t.c < 0 ? ' ' + MINUS + ' ' : ' + ') + termBody(t, V);
+    });
+    return s;
+  }
+  function intHTML(n) { return (n < 0 ? MINUS : '') + Math.abs(n); }
+  function wrapFrac(n, d) { return '<span class="frac"><span class="num">' + n + '</span><span class="den">' + d + '</span></span>'; }
+  function expr(inner) { return '<span class="expr">' + inner + '</span>'; }
+  function sgn() { return '<em class="sgn">' + MINUS + '</em>'; }
+
+  /* 分式 F = {k: 分子常數(含正負), m: 分母常數(>0), num: [因式], den: [因式]} */
+  function groupFactors(fs) {
+    var mono = null, groups = [];
+    fs.forEach(function (f) {
+      if (f.length === 1) { mono = mono ? mul(mono, f) : f; }
+      else {
+        var k = key(f), g = null;
+        for (var i = 0; i < groups.length; i++) if (groups[i].k === k) g = groups[i];
+        if (g) g.n++; else groups.push({ k: k, f: f, n: 1 });
+      }
+    });
+    return { mono: mono, groups: groups };
+  }
+  function partHTML(c, fs, V, forcePar) {
+    var g = groupFactors(fs);
+    var count = (c !== 1 ? 1 : 0) + (g.mono ? 1 : 0) + g.groups.length;
+    var s = '';
+    if (c !== 1 || (!g.mono && g.groups.length === 0)) s += c;
+    if (g.mono) s += termBody({ c: 1, e: g.mono[0].e }, V);
+    g.groups.forEach(function (gr) {
+      var par = count > 1 || gr.n > 1 || forcePar;
+      s += par ? '(' + polyHTML(gr.f, V) + ')' : polyHTML(gr.f, V);
+      if (gr.n > 1) s += '<sup>' + gr.n + '</sup>';
+    });
+    return s;
+  }
+  function fracHTML(F, V) {
+    var neg = F.k < 0;
+    if (F.m === 1 && F.den.length === 0) return expr((neg ? sgn() : '') + partHTML(Math.abs(F.k), F.num, V, neg));
+    return expr((neg ? sgn() : '') + wrapFrac(partHTML(Math.abs(F.k), F.num, V), partHTML(F.m, F.den, V)));
+  }
+  function quotHTML(N, D, V) { return expr(wrapFrac(polyHTML(N, V), polyHTML(D, V))); }
+
+  /* 未經整理的因式（用於解題步驟），strike 標示被約去的因式 */
+  function rawPartHTML(k, fs, V, strike) {
+    var count = (k !== 1 ? 1 : 0) + fs.length, s = '';
+    if (k !== 1 || fs.length === 0) s += k;
+    fs.forEach(function (f, i) {
+      var h = f.length === 1 ? termBody({ c: 1, e: f[0].e }, V) : (count > 1 ? '(' + polyHTML(f, V) + ')' : polyHTML(f, V));
+      if (strike && strike[i]) h = '<del>' + h + '</del>';
+      s += h;
+    });
+    return s;
+  }
+  function rawFracHTML(nk, nf, dk, df, V, sign, sN, sD) {
+    return expr((sign < 0 ? sgn() : '') + wrapFrac(rawPartHTML(nk, nf, V, sN), rawPartHTML(dk, df, V, sD)));
+  }
+  function factorName(f, V) { return f.length === 1 ? expr(termBody({ c: 1, e: f[0].e }, V)) : expr('(' + polyHTML(f, V) + ')'); }
+
+  /* ---------- 分式運算 ---------- */
+  function primitive(p) {
+    var g = 0; p.forEach(function (t) { g = gcd(g, t.c); });
+    if (p[0].c < 0) g = -g;
+    return [g, p.map(function (t) { return { c: t.c / g, e: t.e.slice() }; })];
+  }
+  function tidy(F) {
+    var k = F.k, m = F.m, num = [], den = [];
+    function split(f, out) { // 抽出整數公因數及單項式公因式
+      var r = primitive(f), q = r[1];
+      if (q.length > 1) {
+        var mi = Math.min.apply(null, q.map(function (t) { return t.e[0]; })), mj = Math.min.apply(null, q.map(function (t) { return t.e[1]; }));
+        if (mi > 0 || mj > 0) { out.push([T(1, mi, mj)]); q = q.map(function (t) { return { c: t.c, e: [t.e[0] - mi, t.e[1] - mj] }; }); }
+      }
+      if (!isConst(q)) out.push(q);
+      return r[0];
+    }
+    F.num.forEach(function (f) { k *= split(f, num); });
+    F.den.forEach(function (f) { m *= split(f, den); });
+    if (m < 0) { m = -m; k = -k; }
+    var g = gcd(k, m); if (g > 1) { k /= g; m /= g; }
+    return { k: k, m: m, num: num, den: den };
+  }
+  function cancel(F0) {
+    var F = tidy(F0), ex = [0, 0], numL = [], denL = [];
+    F.num.forEach(function (f) { if (f.length === 1) { ex[0] += f[0].e[0]; ex[1] += f[0].e[1]; } else numL.push(f); });
+    F.den.forEach(function (f) { if (f.length === 1) { ex[0] -= f[0].e[0]; ex[1] -= f[0].e[1]; } else denL.push(f); });
+    var cancelled = [], den2 = denL.slice(), num2 = [];
+    numL.forEach(function (f) {
+      var idx = -1; for (var i = 0; i < den2.length; i++) if (key(den2[i]) === key(f)) { idx = i; break; }
+      if (idx >= 0) { cancelled.push(f); den2.splice(idx, 1); } else num2.push(f);
+    });
+    var num = [], den = [];
+    if (ex[0] > 0 || ex[1] > 0) num.push([T(1, Math.max(ex[0], 0), Math.max(ex[1], 0))]);
+    if (ex[0] < 0 || ex[1] < 0) den.push([T(1, Math.max(-ex[0], 0), Math.max(-ex[1], 0))]);
+    return { F: { k: F.k, m: F.m, num: num.concat(num2), den: den.concat(den2) }, cancelled: cancelled };
+  }
+  function fracND(F) { return { N: prod(F.k, F.num), D: prod(F.m, F.den) }; }
+  function fracEq(A, B) {
+    var a = fracND(A), b = fracND(B);
+    return addP(mul(a.N, b.D), neg(mul(b.N, a.D))).length === 0;
+  }
+  function validF(F) {
+    if (!F || !F.k || !F.m) return false;
+    for (var i = 0; i < F.num.length; i++) if (!F.num[i].length) return false;
+    for (var j = 0; j < F.den.length; j++) if (!F.den[j].length) return false;
+    return true;
+  }
+
+  /* ---------- 題目產生器（Band 3 程度：單一變數、小數字） ---------- */
+  var PAIRS = [['x', 'y'], ['a', 'b'], ['m', 'n'], ['p', 'q']];
+  function oneVar() { return [pick(['x', 'x', 'x', 'a', 'y', 'm']), 'z']; }
+
+  // 初級：單項式分式，例如 6x/9、4x²/6x、10x³/5x
+  function genL1() {
+    var two = Math.random() < 0.15, V = two ? pick(PAIRS) : oneVar(), c1, c2, a1, a2, b1, b2;
+    for (;;) {
+      var g = pick([2, 2, 3, 3, 4, 5]);
+      c1 = g * ri(1, 4); c2 = g * ri(1, 4);
+      if (c1 > 12 || c2 > 12) continue;
+      a1 = ri(0, 3); a2 = ri(0, 3); b1 = 0; b2 = 0;
+      if (a1 + a2 === 0) continue;
+      if (two) { b1 = ri(0, 1); b2 = ri(0, 1); if (b1 + b2 === 0) continue; if (a1 > 1 || a2 > 1) continue; }
+      if (c1 === c2 && a1 === a2 && b1 === b2) continue;
+      break;
+    }
+    return { kind: 'mono', V: V, nk: c1, nf: [[T(1, a1, b1)]], dk: c2, df: [[T(1, a2, b2)]] };
+  }
+
+  // 中級：抽公因式（一個變數、小數字），少量簡單平方差 x² − a²
+  function genL2() {
+    var V = oneVar(), X = [T(1, 1, 0)], r, k, m, a;
+    var q = pick([1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5]), L = P([T(1, 1, 0), T(q, 0, 0)]);
+    switch (pick([1, 1, 2, 3, 3, 4, 5, 6, 7])) {
+      case 1: do { k = ri(2, 6); m = ri(2, 12); } while (gcd(k, m) < 2 || k === m); r = { nk: k, nf: [L], dk: m, df: [] }; break;      // (2x+4)/6
+      case 2: r = { nk: ri(2, 6), nf: [L], dk: 1, df: [L] }; break;                                                                   // (3x+6)/(x+2)
+      case 3: r = { nk: 1, nf: [X, L], dk: pick([1, 1, 2, 3]), df: [X] }; break;                                                      // (x²+2x)/x
+      case 4: k = ri(2, 6); r = { nk: k, nf: [], dk: k, df: [L] }; break;                                                             // 5/(5x−10)
+      case 5: do { k = ri(2, 6); m = ri(2, 6); } while (k === m); r = { nk: k, nf: [L], dk: m, df: [L] }; break;                      // (2x+4)/(3x+6)
+      case 6: a = ri(1, 5); var La = P([T(1, 1, 0), T(a, 0, 0)]), Lm = P([T(1, 1, 0), T(-a, 0, 0)]);
+        r = { nk: 1, nf: [La, Lm], dk: 1, df: [pick([La, Lm])] }; break;                                                              // (x²−9)/(x+3)
+      default: r = { nk: 1, nf: [X, L], dk: ri(2, 4), df: [L] };                                                                      // (x²+3x)/(2x+6)
+    }
+    if (Math.random() < 0.25) r = { nk: r.dk, nf: r.df, dk: r.nk, df: r.nf };
+    r.V = V; r.kind = 'poly';
+    return r;
+  }
+
+  // 高級：首項係數為 1 的二次三項式（根細小）、平方差、簡單公因式；偶爾有簡單變號
+  function genL3() {
+    var V = oneVar(), X = [T(1, 1, 0)];
+    var L = function (a) { return P([T(1, 1, 0), T(a, 0, 0)]); };
+    var flip = function (a) { return P([T(-1, 1, 0), T(a, 0, 0)]); }; // a − x
+    var t = pick([1, 1, 2, 3, 3, 4, 5, 5, 6, 7, 8, 8, 9]), a, b, c, r;
+    for (;;) {
+      a = nz(-6, 6); b = nz(-6, 6); c = nz(-6, 6);
+      if (t === 3 || t === 4 || t === 5 || t === 9) { a = ri(1, 5); }
+      if (a === b || b === c || a === c) continue;
+      if (t === 3 && b === -a) continue;
+      if (Math.abs(a * b) > 30 || Math.abs(a * c) > 30) continue;
+      break;
+    }
+    switch (t) {
+      case 1: r = { nk: 1, nf: [L(a), L(b)], dk: 1, df: [L(a)] }; break;               // (x²+5x+6)/(x+2)
+      case 2: r = { nk: 1, nf: [L(a)], dk: 1, df: [L(a), L(b)] }; break;               // (x+2)/(x²+5x+6)
+      case 3: r = { nk: 1, nf: [L(a), L(b)], dk: 1, df: [L(a), L(-a)] }; break;        // (x²+5x+6)/(x²−4)
+      case 4: r = { nk: 1, nf: [L(-a), L(a)], dk: 1, df: [L(a), L(a)] }; break;        // (x²−4)/(x²+4x+4)
+      case 5: r = { nk: 1, nf: [X, L(a)], dk: 1, df: [L(a), L(-a)] }; break;           // (x²+3x)/(x²−9)
+      case 6: r = { nk: 1, nf: [L(a), L(b)], dk: 1, df: [L(a), L(c)] }; break;         // (x²+5x+6)/(x²+x−2)
+      case 7: r = { nk: 1, nf: [L(a), L(b)], dk: ri(2, 4), df: [L(a)] }; break;        // (x²+5x+6)/(2x+4)
+      case 8: r = { nk: 1, nf: [L(a), L(b)], dk: 1, df: [X, L(a)] }; break;            // (x²+5x+6)/(x²+2x)
+      default: r = { nk: 1, nf: [flip(a)], dk: 1, df: [L(-a), L(a)] };                 // (3−x)/(x²−9)
+    }
+    if (Math.random() < 0.3) r = { nk: r.dk, nf: r.df, dk: r.nk, df: r.nf };
+    r.V = V; r.kind = 'poly';
+    return r;
+  }
+
+  /* ---------- 解題步驟 ---------- */
+  function monoFrac(k, m, n, V) {
+    var num = [], den = [];
+    if (n[0] > 0 || n[1] > 0) num.push([T(1, Math.max(n[0], 0), Math.max(n[1], 0))]);
+    if (n[0] < 0 || n[1] < 0) den.push([T(1, Math.max(-n[0], 0), Math.max(-n[1], 0))]);
+    return { k: k, m: m, num: num, den: den };
+  }
+  function stepsMono(raw, F, qHTML) {
+    var V = raw.V, c1 = raw.nk, c2 = raw.dk, e1 = raw.nf[0][0].e, e2 = raw.df[0][0].e, steps = [];
+    var g = gcd(c1, c2), red = tidy({ k: c1, m: c2, num: [], den: [] });
+    var skipCoef = c1 === 1 && c2 === 1;
+    var t = '係數：';
+    if (g > 1) t += '分子和分母同除以 H.C.F. ' + g;
+    else t += c1 === c2 ? '' : '係數沒有大於 1 的公因數';
+    if (c1 < 0 && c2 < 0) t += '（負負得正）'; else if (c1 < 0 || c2 < 0) t += '（負號放在分數前面）';
+    if (Math.abs(c2) === 1 && !skipCoef) steps.push({ t: '係數：分母的係數為 ' + intHTML(c2) + '，分子係數 ' + intHTML(c1) + ' 不能再約簡' + (c2 < 0 ? '（負號放在分數前面）' : ''), e: null, eq: false });
+    else if (!skipCoef) steps.push({ t: t, e: expr(wrapFrac(intHTML(c1), intHTML(c2)) + '<span class="eqsign">=</span>') + ' ' + fracHTML(red, V), eq: false });
+    for (var i = 0; i < 2; i++) {
+      var p = e1[i], q = e2[i], v = '<i>' + V[i] + '</i>';
+      if (p === 0 && q === 0) continue;
+      var vp = varHTML(i === 0 ? [p, 0] : [0, p], V), vq = varHTML(i === 0 ? [q, 0] : [0, q], V);
+      var tt, ee;
+      if (p > 0 && q > 0) {
+        tt = '變數 ' + v + '：根據指數定律 ' + expr(v + '<sup>m</sup> ÷ ' + v + '<sup>n</sup> = ' + v + '<sup>m − n</sup>');
+        var d = p - q, res;
+        if (d > 0) { res = varHTML(i === 0 ? [d, 0] : [0, d], V); tt += '，餘下的留在分子'; }
+        else if (d < 0) { res = wrapFrac('1', varHTML(i === 0 ? [-d, 0] : [0, -d], V)); tt += '，餘下的留在分母'; }
+        else { res = '1'; tt += '，完全約去'; }
+        ee = expr(wrapFrac(vp, vq) + '<span class="eqsign">=</span>' + res);
+      } else if (p > 0) { tt = '變數 ' + v + '：只在分子出現，保留 ' + expr(vp); ee = null; }
+      else { tt = '變數 ' + v + '：只在分母出現，保留 ' + expr(vq); ee = null; }
+      steps.push({ t: tt, e: ee, eq: false });
+    }
+    steps.push({ t: '綜合以上結果：', e: fracHTML(F, V), eq: true });
+    return steps;
+  }
+
+  function stepsPoly(raw, res) {
+    var V = raw.V, steps = [];
+    steps.push({ t: '先把分子和分母分別因式分解：', e: rawFracHTML(raw.nk, raw.nf, raw.dk, raw.df, V, 1), eq: true });
+    var sign = 1, flips = [];
+    var norm = function (fs) { return fs.map(function (f) { if (f.length > 1 && f[0].c < 0) { sign = -sign; flips.push(f); return neg(f); } return f; }); };
+    var nf = norm(raw.nf), df = norm(raw.df);
+    if (flips.length) {
+      steps.push({
+        t: '注意變號：' + flips.map(function (f) { return expr(polyHTML(f, V) + ' = ' + MINUS + '(' + polyHTML(neg(f), V) + ')'); }).join('，') + '：',
+        e: rawFracHTML(raw.nk, nf, raw.dk, df, V, sign), eq: true
+      });
+    }
+    var sN = nf.map(function () { return false; }), sD = df.map(function () { return false; }), names = [], seen = {};
+    nf.forEach(function (f, i) {
+      for (var j = 0; j < df.length; j++) if (!sD[j] && key(df[j]) === key(f)) {
+        sN[i] = true; sD[j] = true;
+        if (!seen[key(f)]) { seen[key(f)] = 1; names.push(factorName(f, V)); }
+        break;
+      }
+    });
+    if (names.length) steps.push({ t: '約去分子和分母的公因式 ' + names.join('、') + '：', e: rawFracHTML(raw.nk, nf, raw.dk, df, V, sign, sN, sD), eq: true });
+    var monoLeft = nf.some(function (f, i) { return f.length === 1 && !sN[i]; }) && df.some(function (f, i) { return f.length === 1 && !sD[i]; });
+    var t = (gcd(raw.nk, raw.dk) > 1 || monoLeft) ? '再約簡餘下的係數和變數，得最簡分式：' : '化簡後得最簡分式：';
+    steps.push({ t: t, e: fracHTML(res.F, V), eq: true });
+    return steps;
+  }
+
+  /* ---------- 干擾選項（常見錯誤） ---------- */
+  function negF(F) { return { k: -F.k, m: F.m, num: F.num, den: F.den }; }
+  function recipF(F) { return { k: (F.k < 0 ? -1 : 1) * F.m, m: Math.abs(F.k), num: F.den, den: F.num }; }
+  function swapConst(F) { return { k: (F.k < 0 ? -1 : 1) * F.m, m: Math.abs(F.k), num: F.num, den: F.den }; }
+  function flipInner(f) { return P(f.map(function (t, i) { return { c: i === 0 ? t.c : -t.c, e: t.e.slice() }; })); }
+  function termCancel(N, D) {
+    var dk = D.map(key1), n2 = [], d2 = D.slice(), removed = 0;
+    function key1(t) { return t.c + ':' + t.e.join('.'); }
+    N.forEach(function (t) {
+      var idx = -1; for (var i = 0; i < d2.length; i++) if (key1(d2[i]) === key1(t)) { idx = i; break; }
+      if (idx >= 0) { d2.splice(idx, 1); removed++; } else n2.push(t);
+    });
+    if (!removed || !n2.length || !d2.length) return null;
+    return { k: 1, m: 1, num: [P(n2)], den: [P(d2)] };
+  }
+  function perturbPoly(F) {
+    var G = { k: F.k, m: F.m, num: F.num.slice(), den: F.den.slice() };
+    var slots = [];
+    G.num.forEach(function (f, i) { if (f.length > 1) slots.push(['num', i]); });
+    G.den.forEach(function (f, i) { if (f.length > 1) slots.push(['den', i]); });
+    var r = Math.random();
+    if (slots.length && r < 0.6) {
+      var s = pick(slots), f = G[s[0]][s[1]], ti = ri(1, f.length - 1);
+      var nf = f.map(function (t, i) { return { c: i === ti ? t.c + pick([-2, -1, 1, 2]) : t.c, e: t.e.slice() }; });
+      G[s[0]][s[1]] = P(nf);
+    } else if (r < 0.8) { if (Math.random() < 0.5) G.k = F.k + pick([-1, 1, 2]); else G.m = F.m + pick([1, 2]); }
+    else { if (Math.random() < 0.5) G.num = G.num.concat([[T(1, 1, 0)]]); else G.den = G.den.concat([[T(1, 1, 0)]]); }
+    return G;
+  }
+  function distractorsPoly(raw, res, N, D) {
+    var F = res.F, C = res.cancelled, cands = [];
+    var add = function (G, pr) { if (G) cands.push({ G: G, pr: pr + Math.random() * 0.9 }); };
+    var hasFlip = raw.nf.concat(raw.df).some(function (f) { return f.length > 1 && f[0].c < 0; });
+    add(negF(F), hasFlip ? 0 : 2.2);
+    add(recipF(F), 2.5);
+    C.forEach(function (c) {
+      F.num.forEach(function (f, i) { if (f.length > 1) { var n = F.num.slice(); n[i] = c; add({ k: F.k, m: F.m, num: n, den: F.den }, 1); } });
+      F.den.forEach(function (f, i) { if (f.length > 1) { var d = F.den.slice(); d[i] = c; add({ k: F.k, m: F.m, num: F.num, den: d }, 1); } });
+      add({ k: F.k, m: F.m, num: F.num.concat([c]), den: F.den }, 2);
+      add({ k: F.k, m: F.m, num: F.num, den: F.den.concat([c]) }, 2);
+    });
+    F.num.forEach(function (f, i) { if (f.length > 1) { var n = F.num.slice(); n[i] = flipInner(f); add({ k: F.k, m: F.m, num: n, den: F.den }, 1.2); } });
+    F.den.forEach(function (f, i) { if (f.length > 1) { var d = F.den.slice(); d[i] = flipInner(f); add({ k: F.k, m: F.m, num: F.num, den: d }, 1.2); } });
+    add(termCancel(N, D), 0.8);
+    if (Math.abs(F.k) !== F.m) add(swapConst(F), 1.5);
+    F.num.forEach(function (f, i) { if (f.length === 1) add({ k: F.k, m: F.m, num: F.num.filter(function (_, j) { return j !== i; }), den: F.den.concat([f]) }, 1.8); });
+    F.den.forEach(function (f, i) { if (f.length === 1) add({ k: F.k, m: F.m, num: F.num.concat([f]), den: F.den.filter(function (_, j) { return j !== i; }) }, 1.8); });
+    if (hasFlip) cands.slice().forEach(function (c) { if (c.pr > 0.95) add(negF(c.G), 1.6); });
+    cands.sort(function (x, y) { return x.pr - y.pr; });
+    return choose(F, cands.map(function (c) { return c.G; }), function () { return perturbPoly(F); }, raw.V);
+  }
+  function distractorsMono(raw, F) {
+    var V = raw.V, c1 = raw.nk, c2 = raw.dk, e1 = raw.nf[0][0].e, e2 = raw.df[0][0].e, n = [e1[0] - e2[0], e1[1] - e2[1]];
+    var cands = [], add = function (G, pr) { if (G) cands.push({ G: G, pr: pr + Math.random() * 0.9 }); };
+    var withN = function (nn) { return monoFrac(F.k, F.m, nn, V); };
+    if (Math.abs(F.k) !== F.m) add(swapConst(F), 1);
+    add(negF(F), (c1 < 0 || c2 < 0) ? 0.3 : 3);
+    for (var i = 0; i < 2; i++) {
+      var nn;
+      if (e1[i] > 0 && e2[i] > 0 && n[i] !== 0) { nn = n.slice(); nn[i] = (n[i] > 0 ? 1 : -1) * (e1[i] + e2[i]); add(withN(nn), 1); }
+      if (e1[i] > 0 && e2[i] > 0 && e1[i] > e2[i] && e1[i] % e2[i] === 0 && e1[i] / e2[i] !== n[i]) { nn = n.slice(); nn[i] = e1[i] / e2[i]; add(withN(nn), 0.8); }
+      if (e1[i] > 0 && e2[i] > 0 && e2[i] > e1[i] && e2[i] % e1[i] === 0 && e2[i] / e1[i] !== -n[i]) { nn = n.slice(); nn[i] = -e2[i] / e1[i]; add(withN(nn), 0.8); }
+      if (n[i] !== 0) { nn = n.slice(); nn[i] = -n[i]; add(withN(nn), 1.1); }
+      if (e1[i] + e2[i] > 0) { nn = n.slice(); nn[i] = n[i] + pick([-1, 1]); add(withN(nn), 2); }
+    }
+    var gg = gcd(c1, c2);
+    if (gg > 1) add({ k: F.k * gg > 48 ? F.k + 1 : F.k, m: F.m * gg > 48 ? F.m + 1 : F.m * gg, num: F.num, den: F.den }, 2.6);
+    cands.sort(function (x, y) { return x.pr - y.pr; });
+    return choose(F, cands.map(function (c) { return c.G; }), function () {
+      var nn = n.slice(), r = Math.random();
+      if (r < 0.5) { var j = ri(0, 1); nn[j] += pick([-2, -1, 1, 2]); return withN(nn); }
+      return monoFrac(r < 0.75 ? F.k + pick([-1, 1]) : F.k, r >= 0.75 ? F.m + 1 : F.m, n, V);
+    }, V);
+  }
+  function lowest(G) { // 干擾選項本身必須是最簡形式，避免出現 (x+4)/(x+4) 之類
+    var r = cancel(G);
+    if (r.cancelled.length) return false;
+    var mn = G.num.filter(function (f) { return f.length === 1; }), md = G.den.filter(function (f) { return f.length === 1; });
+    for (var i = 0; i < 2; i++) if (mn.length && md.length && mn[0][0].e[i] > 0 && md[0][0].e[i] > 0) return false;
+    return true;
+  }
+  function choose(F, list, fallback, V) {
+    var chosen = [], htmls = [fracHTML(F, V)];
+    function tryAdd(G) {
+      if (chosen.length >= 3 || !validF(G)) return;
+      G = tidy(G);
+      if (!validF(G) || fracEq(G, F) || !lowest(G)) return;
+      for (var i = 0; i < chosen.length; i++) if (fracEq(G, chosen[i])) return;
+      var h = fracHTML(G, V);
+      if (htmls.indexOf(h) >= 0) return;
+      chosen.push(G); htmls.push(h);
+    }
+    list.forEach(tryAdd);
+    for (var tries = 0; chosen.length < 3 && tries < 400; tries++) tryAdd(fallback());
+    for (var d = 1; chosen.length < 3; d++) tryAdd({ k: F.k + d, m: F.m, num: F.num, den: F.den });
+    return chosen;
+  }
+
+  /* ---------- 組合題目 ---------- */
+  function generate(level) {
+    var raw = level === 1 ? genL1() : level === 2 ? genL2() : genL3();
+    var V = raw.V, N = prod(raw.nk, raw.nf), D = prod(raw.dk, raw.df);
+    var res = cancel({ k: raw.nk, m: raw.dk, num: raw.nf, den: raw.df }), F = res.F;
+    var qHTML = quotHTML(N, D, V);
+    var steps = raw.kind === 'mono' ? stepsMono(raw, F) : stepsPoly(raw, res);
+    var ds = raw.kind === 'mono' ? distractorsMono(raw, F) : distractorsPoly(raw, res, N, D);
+    var options = [{ html: fracHTML(F, V), correct: true }].concat(ds.map(function (G) { return { html: fracHTML(G, V), correct: false }; }));
+    shuffle(options);
+    var answerIndex = 0; options.forEach(function (o, i) { if (o.correct) answerIndex = i; });
+    return { level: level, V: V, qHTML: qHTML, answerHTML: fracHTML(F, V), options: options, answerIndex: answerIndex, steps: steps, _N: N, _D: D, _F: F };
+  }
+
+  return { generate: generate, _internal: { P: P, T: T, mul: mul, prod: prod, fracEq: fracEq, fracHTML: fracHTML, polyHTML: polyHTML, evalP: evalP } };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+</script>
+
+<script id="algebra">
+/* ================= 解題實驗室：多項式引擎（解析、展開、因式分解、檢查；不依賴 DOM） ================= */
+var Algebra = (function () {
+  'use strict';
+  var MINUS = '\u2212';
+  var LIM = { exp: 12, deg: 16, terms: 60, num: 100000, len: 200 };
+  function AlgError(msg) { this.message = msg; this.isAlg = true; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = a % b; a = b; b = t; } return a; }
+  function sgn(x) { return x < 0 ? -1 : 1; }
+
+  /* ---------- 單項式及多項式 ---------- */
+  function copyM(m) { var r = {}; for (var v in m) if (m[v]) r[v] = m[v]; return r; }
+  function mdeg(m) { var s = 0; for (var v in m) s += m[v]; return s; }
+  function mkey(m) { return Object.keys(m).sort().map(function (v) { return v + m[v]; }).join(','); }
+  function cmpMono(a, b) { // 先比總次數，再按字母次序
+    var d = mdeg(b) - mdeg(a); if (d) return d;
+    var vs = Object.keys(a).concat(Object.keys(b)).sort();
+    for (var i = 0; i < vs.length; i++) { var x = (a[vs[i]] || 0) - (b[vs[i]] || 0); if (x) return -x; }
+    return 0;
+  }
+  function norm(terms) {
+    var map = {}, order = [];
+    terms.forEach(function (t) { if (!t.c) return; var k = mkey(t.m); if (!(k in map)) { map[k] = { c: 0, m: t.m }; order.push(k); } map[k].c += t.c; });
+    var out = [];
+    order.forEach(function (k) { if (map[k].c !== 0) out.push({ c: map[k].c, m: copyM(map[k].m) }); });
+    out.sort(function (a, b) { return cmpMono(a.m, b.m); });
+    return out;
+  }
+  function C(c) { return c ? [{ c: c, m: {} }] : []; }
+  function V(v) { var m = {}; m[v] = 1; return [{ c: 1, m: m }]; }
+  function mulM(a, b) { var r = copyM(a); for (var v in b) r[v] = (r[v] || 0) + b[v]; return r; }
+  function mul(p, q) { var r = []; p.forEach(function (a) { q.forEach(function (b) { r.push({ c: a.c * b.c, m: mulM(a.m, b.m) }); }); }); return norm(r); }
+  function add(p, q) { return norm(p.concat(q)); }
+  function neg(p) { return p.map(function (t) { return { c: -t.c, m: copyM(t.m) }; }); }
+  function sub(p, q) { return add(p, neg(q)); }
+  function scale(p, k) { return norm(p.map(function (t) { return { c: t.c * k, m: copyM(t.m) }; })); }
+  function checkSize(p) {
+    if (p.length > LIM.terms) throw new AlgError('式子展開後太長了，請輸入較簡單的式子。');
+    p.forEach(function (t) { if (mdeg(t.m) > LIM.deg) throw new AlgError('式子的次數太高了（最多 ' + LIM.deg + ' 次）。'); if (Math.abs(t.c) > 1e12) throw new AlgError('係數太大了，請輸入較簡單的式子。'); });
+    return p;
+  }
+  function pow(p, n) { var r = C(1); for (var i = 0; i < n; i++) r = checkSize(mul(r, p)); return r; }
+  function eq(p, q) { return sub(p, q).length === 0; }
+  function isConst(p) { return p.length === 0 || (p.length === 1 && mdeg(p[0].m) === 0); }
+  function varsOf(p) { var s = {}; p.forEach(function (t) { for (var v in t.m) s[v] = 1; }); return Object.keys(s).sort(); }
+  function degIn(p, v) { var d = 0; p.forEach(function (t) { d = Math.max(d, t.m[v] || 0); }); return d; }
+  function totalDeg(p) { var d = 0; p.forEach(function (t) { d = Math.max(d, mdeg(t.m)); }); return d; }
+  function intContent(p) { var g = 0; p.forEach(function (t) { g = gcd(g, t.c); }); return g; }
+  function monoContent(p) {
+    var r = {}; if (!p.length) return r;
+    varsOf(p).forEach(function (v) { var e = Infinity; p.forEach(function (t) { e = Math.min(e, t.m[v] || 0); }); if (e > 0) r[v] = e; });
+    return r;
+  }
+  function divM(a, b) { var r = copyM(a); for (var v in b) { r[v] = (r[v] || 0) - b[v]; if (r[v] < 0) return null; if (!r[v]) delete r[v]; } return r; }
+  function divMonoInt(p, m, k) { return norm(p.map(function (t) { return { c: t.c / k, m: divM(t.m, m) }; })); }
+  function pkey(p) { return p.map(function (t) { return t.c + '*' + mkey(t.m); }).join('|'); }
+  function evalP(p, env) { return p.reduce(function (s, t) { var x = t.c; for (var v in t.m) x *= Math.pow(env[v], t.m[v]); return s + x; }, 0); }
+  function coeffsIn(P, v) {
+    var d = degIn(P, v), arr = []; for (var i = 0; i <= d; i++) arr.push([]);
+    P.forEach(function (t) { var e = t.m[v] || 0, m = copyM(t.m); delete m[v]; arr[e].push({ c: t.c, m: m }); });
+    return arr.map(norm);
+  }
+  // 整除（多項式除法）；不能整除時回傳 null
+  function divExact(P, D, st) {
+    if (!D.length) return null;
+    var R = P, Q = [], lt = D[0], guard = 0;
+    while (R.length) {
+      if (++guard > 3000) return null;
+      if (st) { st.ops++; if (st.ops > 400000) { st.unsure = true; return null; } }
+      var t = R[0];
+      if (t.c % lt.c !== 0) return null;
+      var m = divM(t.m, lt.m); if (!m) return null;
+      var q = { c: t.c / lt.c, m: m };
+      Q.push(q);
+      R = sub(R, mul([q], D));
+    }
+    return norm(Q);
+  }
+
+  /* ---------- 因式分解 ----------
+     回傳 {c: 整數(含正負), mono: 單項式公因式, factors: [{p, n}], unsure}
+     factors 中每個因式都是本原多項式，且首項係數為正。 */
+  function factorize(P) { return factorizeIn(P, { ops: 0, unsure: false }); }
+  function factorizeIn(P, st) {
+    var res = { c: 0, mono: {}, factors: [], unsure: false };
+    if (!P.length) return res;
+    var k = intContent(P); if (P[0].c < 0) k = -k;
+    res.c = k;
+    var mc = monoContent(P); res.mono = mc;
+    var Q = divMonoInt(P, mc, k);
+    if (!isConst(Q)) {
+      var groups = [];
+      factorPrim(Q, st).forEach(function (f) {
+        if (isConst(f)) { res.c *= f[0].c; return; }
+        if (f[0].c < 0) { f = neg(f); res.c = -res.c; }
+        var key = pkey(f), g = null;
+        groups.forEach(function (x) { if (x.key === key) g = x; });
+        if (g) g.n++; else groups.push({ key: key, p: f, n: 1 });
+      });
+      groups.sort(function (a, b) { return (varsOf(a.p).length - varsOf(b.p).length) || (totalDeg(a.p) - totalDeg(b.p)) || (polyText(a.p) < polyText(b.p) ? -1 : 1); });
+      res.factors = groups.map(function (g) { return { p: g.p, n: g.n }; });
+    }
+    res.unsure = st.unsure;
+    return res;
+  }
+  function factorPrim(P, st) { // P：本原、沒有單項式公因式、非常數
+    var vs = varsOf(P);
+    if (!vs.length) return [P];
+    var v = vs[0], d = degIn(P, v);
+    vs.forEach(function (u) { var du = degIn(P, u); if (du < d) { d = du; v = u; } });
+    var out = [];
+    if (vs.length > 1) { // 以 v 為主元時的「內容」（各係數的公因式，例如分組分解）
+      var cf = coeffsIn(P, v).filter(function (c) { return c.length; });
+      var base = cf.reduce(function (a, b) { return b.length < a.length ? b : a; });
+      if (!isConst(base)) {
+        var bf = factorizeIn(base, st);
+        bf.factors.forEach(function (f) {
+          for (var i = 0; i < f.n; i++) { var q = divExact(P, f.p, st); if (!q) break; out.push(f.p); P = q; }
+        });
+      }
+    }
+    if (degIn(P, v) <= 1) { if (!isConst(P) || P[0].c !== 1) out.push(P); return out; }
+    while (degIn(P, v) >= 2) { // 一次因式（推廣的有理根定理 / 因式定理）
+      var L = findLinear(P, v, st);
+      if (!L) break;
+      out.push(L); P = divExact(P, L, st);
+    }
+    d = degIn(P, v);
+    if (d === 0) { if (P[0].c !== 1) out.push(P); return out; }
+    if (d >= 4) {
+      if (varsOf(P).length === 1) {
+        var Qd = findQuadratic(P, v, st);
+        if (Qd) { out.push(Qd); return out.concat(factorPrim(divExact(P, Qd, st), st)); }
+        if (d >= 6) st.unsure = true;
+      } else if (varsOf(P).length === 2 && isHomog(P)) { // 二元齊次式：令另一變數為 1，找二次因式後再齊次化
+        var u = varsOf(P).filter(function (w) { return w !== v; })[0];
+        var Q1 = findQuadratic(norm(P.map(function (t) { var m = copyM(t.m); delete m[u]; return { c: t.c, m: m }; })), v, st);
+        if (Q1) {
+          var Qh = norm(Q1.map(function (t) { var m = copyM(t.m), k = 2 - (m[v] || 0); if (k) m[u] = k; return { c: t.c, m: m }; }));
+          var rest = divExact(P, Qh, st);
+          if (rest) { out.push(Qh); return out.concat(factorPrim(rest, st)); }
+        }
+        if (d >= 6) st.unsure = true;
+      } else st.unsure = true;
+    }
+    out.push(P);
+    return out;
+  }
+  function divisorsOf(Cp, positive, st) {
+    var f = factorizeIn(Cp, st), n = Math.abs(f.c), ints = [];
+    for (var i = 1; i * i <= n; i++) if (n % i === 0) { ints.push(i); if (i * i !== n) ints.push(n / i); }
+    ints.sort(function (a, b) { return a - b; });
+    var atoms = [];
+    Object.keys(f.mono).forEach(function (u) { atoms.push({ p: V(u), n: f.mono[u] }); });
+    f.factors.forEach(function (x) { atoms.push(x); });
+    var prods = [C(1)];
+    for (var a = 0; a < atoms.length; a++) {
+      var nx = [];
+      prods.forEach(function (pr) { var cur = pr; for (var e = 0; e <= atoms[a].n; e++) { nx.push(cur); cur = mul(cur, atoms[a].p); } });
+      prods = nx;
+      if (prods.length > 300) { st.unsure = true; break; }
+    }
+    var out = [];
+    ints.forEach(function (dd) { prods.forEach(function (pr) { out.push(scale(pr, dd)); if (!positive) out.push(scale(pr, -dd)); }); });
+    return out;
+  }
+  function quickTest(P, a, b, v) { // 先用數值測試 a·v + b 是否可能是因式
+    var env = {}, vs = varsOf(P).concat(varsOf(a), varsOf(b)), primes = [3, 5, 7, 11, 13, 17, 19, 23];
+    vs.forEach(function (u, i) { if (u !== v) env[u] = primes[i % primes.length] + i * 0.37; });
+    var a0 = evalP(a, env), b0 = evalP(b, env);
+    if (Math.abs(a0) < 1e-12) return true;
+    env[v] = -b0 / a0;
+    var s = 0, val = 0;
+    P.forEach(function (t) { var x = t.c; for (var u in t.m) x *= Math.pow(env[u], t.m[u]); val += x; s += Math.abs(x); });
+    return Math.abs(val) <= 1e-7 * (s + 1);
+  }
+  function findLinear(P, v, st) {
+    var cf = coeffsIn(P, v), lead = cf[cf.length - 1], c0 = cf[0];
+    if (!c0.length) return V(v);
+    var A = divisorsOf(lead, true, st), B = divisorsOf(c0, false, st), count = 0;
+    for (var i = 0; i < A.length; i++) for (var j = 0; j < B.length; j++) {
+      if (++count > 6000) { st.unsure = true; return null; }
+      var D = add(mul(A[i], V(v)), B[j]);
+      if (intContent(D) !== 1 || !quickTest(P, A[i], B[j], v)) continue;
+      if (divExact(P, D, st)) return D[0].c < 0 ? neg(D) : D;
+    }
+    return null;
+  }
+  function findQuadratic(P, v, st) { // 單變數：嘗試 a·v² + b·v + c 形式的二次因式
+    var cf = coeffsIn(P, v).map(function (c) { return c.length ? c[0].c : 0; });
+    var lead = Math.abs(cf[cf.length - 1]), c0 = Math.abs(cf[0]), M = 0;
+    cf.forEach(function (c) { M = Math.max(M, Math.abs(c)); });
+    var bound = Math.min(40, 2 * M + 2), A = [], B = [], i;
+    for (i = 1; i <= lead; i++) if (lead % i === 0) A.push(i);
+    for (i = 1; i <= c0; i++) if (c0 % i === 0) { B.push(i); B.push(-i); }
+    for (var x = 0; x < A.length; x++) for (var y = 0; y < B.length; y++) for (var b = -bound; b <= bound; b++) {
+      if (gcd(gcd(A[x], b), B[y]) !== 1) continue;
+      var m2 = {}; m2[v] = 2;
+      var D = norm([{ c: A[x], m: m2 }, { c: b, m: V(v)[0].m }, { c: B[y], m: {} }]);
+      if (divExact(P, D, st)) return D;
+      if (st.unsure) return null;
+    }
+    return null;
+  }
+  function isHomog(p) { var d = mdeg(p[0].m); return p.every(function (t) { return mdeg(t.m) === d; }); }
+  function factorCount(F) { return F.factors.reduce(function (s, f) { return s + f.n; }, 0); }
+
+  /* ---------- 顯示 ---------- */
+  function monoHTML(m) { return Object.keys(m).sort().map(function (v) { return '<i>' + v + '</i>' + (m[v] > 1 ? '<sup>' + m[v] + '</sup>' : ''); }).join(''); }
+  function monoText(m) { return Object.keys(m).sort().map(function (v) { return v + (m[v] > 1 ? '^' + m[v] : ''); }).join(''); }
+  function displayOrder(p) { var t = p.slice(); if (t.length === 2 && t[0].c < 0 && t[1].c > 0) t = [t[1], t[0]]; return t; }
+  function polyHTML(p) {
+    if (!p.length) return '0';
+    return displayOrder(p).map(function (t, i) {
+      var a = Math.abs(t.c), mh = monoHTML(t.m), body = mh ? (a === 1 ? '' : a) + mh : String(a);
+      return i === 0 ? (t.c < 0 ? MINUS : '') + body : (t.c < 0 ? ' ' + MINUS + ' ' : ' + ') + body;
+    }).join('');
+  }
+  function polyText(p) {
+    if (!p.length) return '0';
+    return displayOrder(p).map(function (t, i) {
+      var a = Math.abs(t.c), mt = monoText(t.m), body = mt ? (a === 1 ? '' : a) + mt : String(a);
+      return (t.c < 0 ? '-' : (i ? '+' : '')) + body;
+    }).join('');
+  }
+  function expr(inner) { return '<span class="expr">' + inner + '</span>'; }
+  function wrapFrac(n, d) { return '<span class="frac"><span class="num">' + n + '</span><span class="den">' + d + '</span></span>'; }
+  function sgnH() { return '<em class="sgn">' + MINUS + '</em>'; }
+  function pexpr(p) { return expr(p.length > 1 ? '(' + polyHTML(p) + ')' : polyHTML(p)); }
+  function groupPolys(polys) {
+    var g = [];
+    polys.forEach(function (p) { var k = pkey(p), f = null; g.forEach(function (x) { if (x.k === k) f = x; }); if (f) f.n++; else g.push({ k: k, p: p, n: 1 }); });
+    return g;
+  }
+  function part(c, mono, polys, forcePar, text) {
+    var g = groupPolys(polys), hasM = Object.keys(mono).length > 0, s = '';
+    var count = (c !== 1 ? 1 : 0) + (hasM ? 1 : 0) + g.length;
+    if (c !== 1 || (!hasM && !g.length)) s += c;
+    if (hasM) s += text ? monoText(mono) : monoHTML(mono);
+    g.forEach(function (x) {
+      var body = text ? polyText(x.p) : polyHTML(x.p), par = count > 1 || x.n > 1 || forcePar;
+      s += par ? '(' + body + ')' : body;
+      if (x.n > 1) s += text ? '^' + x.n : '<sup>' + x.n + '</sup>';
+    });
+    return s;
+  }
+  function isOne(fl) { return !fl || (Math.abs(fl.coef) === 1 && !Object.keys(fl.mono).length && !fl.polys.length); }
+  // fl = {coef: 整數(含正負), mono: {...}, polys: [多項式...]}
+  function flFracHTML(nfl, dfl) {
+    var negv = sgn(nfl.coef) * sgn(dfl ? dfl.coef : 1) < 0, n = Math.abs(nfl.coef);
+    if (isOne(dfl)) return expr((negv ? sgnH() : '') + part(n, nfl.mono, nfl.polys, negv && nfl.polys.length === 1 && n === 1 && !Object.keys(nfl.mono).length));
+    return expr((negv ? sgnH() : '') + wrapFrac(part(n, nfl.mono, nfl.polys), part(Math.abs(dfl.coef), dfl.mono, dfl.polys)));
+  }
+  function flFracText(nfl, dfl) {
+    var negv = sgn(nfl.coef) * sgn(dfl ? dfl.coef : 1) < 0, n = Math.abs(nfl.coef), one = isOne(dfl);
+    var s = (negv ? '-' : '') + part(n, nfl.mono, nfl.polys, !one || negv, true);
+    if (!one) s += '/' + part(Math.abs(dfl.coef), dfl.mono, dfl.polys, true, true);
+    return s;
+  }
+  function factoredFL(F) { var polys = []; F.factors.forEach(function (f) { for (var i = 0; i < f.n; i++) polys.push(f.p); }); return { coef: F.c, mono: F.mono, polys: polys }; }
+  function factoredHTML(F) { return flFracHTML(factoredFL(F), null); }
+  function factoredText(F) { return flFracText(factoredFL(F), null); }
+  function polyFracHTML(N, D) { return expr(wrapFrac(polyHTML(N), polyHTML(D))); }
+
+  /* ---------- 解析使用者輸入 ---------- */
+  function tokenize(s) {
+    var src = String(s == null ? '' : s);
+    if (src.length > LIM.len) throw new AlgError('輸入太長了，請輸入較簡單的式子。');
+    var supMap = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' };
+    src = src.replace(/[\uFF01-\uFF5E]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })
+      .replace(/[\u2212\u2013\u2014\uFE63]/g, '-').replace(/[\u00D7\u00B7\u22C5]/g, '*').replace(/\u00F7/g, '/')
+      .replace(/[\[{]/g, '(').replace(/[\]}]/g, ')')
+      .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, function (m) { return '^' + m.split('').map(function (c) { return supMap[c]; }).join(''); });
+    var toks = [], i = 0;
+    while (i < src.length) {
+      var ch = src[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      if (/[0-9]/.test(ch)) {
+        var j = i; while (j < src.length && /[0-9]/.test(src[j])) j++;
+        if (src[j] === '.') throw new AlgError('請使用整數係數，不要使用小數。');
+        var n = parseInt(src.slice(i, j), 10);
+        if (n > LIM.num) throw new AlgError('數字太大了（最大 ' + LIM.num + '）。');
+        toks.push({ t: 'n', v: n }); i = j; continue;
+      }
+      if (/[a-zA-Z]/.test(ch)) { toks.push({ t: 'v', v: ch.toLowerCase() }); i++; continue; }
+      if ('+-*/^()'.indexOf(ch) >= 0) { toks.push({ t: ch }); i++; continue; }
+      if (ch === '.') throw new AlgError('請使用整數係數，不要使用小數。');
+      if (ch === '=') throw new AlgError('請只輸入式子，不需要輸入「=」。');
+      throw new AlgError('無法識別的符號「' + esc(ch) + '」。');
+    }
+    return toks;
+  }
+  function parseTokens(toks) {
+    var i = 0;
+    function peek() { return toks[i] ? toks[i].t : null; }
+    function startsFactor(t) { return t === 'n' || t === 'v' || t === '('; }
+    function parseExpr() {
+      var terms = [], s = 1;
+      if (peek() === '+' || peek() === '-') { s = peek() === '-' ? -1 : 1; i++; }
+      if (!startsFactor(peek())) throw new AlgError(peek() === null || peek() === ')' ? '式子不完整，請檢查。' : '請不要連續使用運算符號。');
+      terms.push({ s: s, node: parseTerm() });
+      while (peek() === '+' || peek() === '-') {
+        var op = peek(); i++;
+        if (!startsFactor(peek())) throw new AlgError(peek() === null || peek() === ')' ? '「' + (op === '-' ? MINUS : '+') + '」後面缺少一項。' : '請不要連續使用運算符號。');
+        terms.push({ s: op === '-' ? -1 : 1, node: parseTerm() });
+      }
+      return { k: 'sum', terms: terms };
+    }
+    function parseTerm() {
+      var items = [parseFactor()];
+      for (;;) {
+        var t = peek();
+        if (t === '*') { i++; if (!startsFactor(peek())) throw new AlgError('「×」後面缺少因式。'); items.push(parseFactor()); }
+        else if (startsFactor(t)) {
+          if (t === 'n') throw new AlgError('數字應寫在變數前面（例如 2x）；指數請用 ^（例如 x^2）。');
+          items.push(parseFactor());
+        }
+        else if (t === '/') throw new AlgError('分子和分母內請不要使用除號（整條分式只可有一個「/」）。');
+        else if (t === '^') throw new AlgError('「^」用法不正確，例如應寫 x^2。');
+        else break;
+      }
+      return { k: 'prod', items: items };
+    }
+    function parseFactor() {
+      var base = parseAtom();
+      if (peek() === '^') {
+        i++;
+        var e;
+        if (peek() === 'n') { e = toks[i].v; i++; }
+        else if (peek() === '(' && toks[i + 1] && toks[i + 1].t === 'n' && toks[i + 2] && toks[i + 2].t === ')') { e = toks[i + 1].v; i += 3; }
+        else throw new AlgError('指數必須是正整數，例如 x^2。');
+        if (e > LIM.exp) throw new AlgError('指數太大了（最多 ' + LIM.exp + '）。');
+        if (peek() === '^') throw new AlgError('請不要連續使用「^」。');
+        return { k: 'pow', base: base, e: e };
+      }
+      return base;
+    }
+    function parseAtom() {
+      var t = peek();
+      if (t === 'n') { i++; return { k: 'num', v: toks[i - 1].v }; }
+      if (t === 'v') { i++; return { k: 'var', v: toks[i - 1].v }; }
+      if (t === '(') {
+        i++;
+        if (peek() === ')') throw new AlgError('括號內不能是空的。');
+        var e = parseExpr();
+        if (peek() !== ')') throw new AlgError('括號不對稱：缺少「)」。');
+        i++;
+        return { k: 'par', e: e };
+      }
+      if (t === ')') throw new AlgError('括號不對稱：多了「)」。');
+      throw new AlgError('式子不完整，請檢查。');
+    }
+    if (!toks.length) throw new AlgError('請輸入式子。');
+    var ast = parseExpr();
+    if (i < toks.length) throw new AlgError(peek() === ')' ? '括號不對稱：多了「)」。' : '無法理解這個式子，請檢查。');
+    return ast;
+  }
+  function astPoly(n) {
+    switch (n.k) {
+      case 'num': return C(n.v);
+      case 'var': return V(n.v);
+      case 'par': return astPoly(n.e);
+      case 'pow': return pow(astPoly(n.base), n.e);
+      case 'prod': return n.items.reduce(function (r, it) { return checkSize(mul(r, astPoly(it))); }, C(1));
+      default: return checkSize(n.terms.reduce(function (r, t) { var q = astPoly(t.node); return add(r, t.s < 0 ? neg(q) : q); }, []));
+    }
+  }
+  function astHTML(n) {
+    switch (n.k) {
+      case 'num': return String(n.v);
+      case 'var': return '<i>' + n.v + '</i>';
+      case 'par': return '(' + astHTML(n.e) + ')';
+      case 'pow': return astHTML(n.base) + '<sup>' + n.e + '</sup>';
+      case 'prod': return n.items.map(function (it, i) { var h = astHTML(it); if (i > 0 && (it.k === 'num' || (it.k === 'pow' && it.base.k === 'num'))) h = '×' + h; return h; }).join('');
+      default: return n.terms.map(function (t, i) { var h = astHTML(t.node); return i === 0 ? (t.s < 0 ? MINUS : '') + h : (t.s < 0 ? ' ' + MINUS + ' ' : ' + ') + h; }).join('');
+    }
+  }
+  function parsePoly(str) {
+    var toks = tokenize(str);
+    if (!toks.length) throw new AlgError('請輸入式子。');
+    var ast = parseTokens(toks);
+    return { ast: ast, poly: astPoly(ast), html: astHTML(ast) };
+  }
+  // 以最外層的「/」把字串分成分子和分母
+  function splitFraction(str) {
+    var s = String(str || ''), depth = 0, cut = [];
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (c === '(' || c === '（' || c === '[' || c === '{') depth++;
+      else if (c === ')' || c === '）' || c === ']' || c === '}') depth--;
+      else if ((c === '/' || c === '÷' || c === '／') && depth === 0) cut.push(i);
+    }
+    if (!cut.length) return null;
+    if (cut.length > 1) throw new AlgError('只可以有一條分數線（一個「/」）。');
+    return [s.slice(0, cut[0]), s.slice(cut[0] + 1)];
+  }
+  function parseFraction(str, requireDen) {
+    var sp = splitFraction(str);
+    if (!sp) { var r = parsePoly(str); if (requireDen) throw new AlgError('請輸入分母。'); return { num: r, den: null }; }
+    if (!sp[0].trim()) throw new AlgError('「/」前面缺少分子。');
+    if (!sp[1].trim()) throw new AlgError('「/」後面缺少分母。');
+    return { num: parsePoly(sp[0]), den: parsePoly(sp[1]) };
+  }
+  function wrapErr(fn) { try { return { ok: true, value: fn() }; } catch (e) { if (e && e.isAlg) return { ok: false, msg: e.message }; throw e; } }
+
+  /* ---------- 學生輸入的因式結構 ---------- */
+  function flatten(ast) {
+    if (ast.k === 'sum' && ast.terms.length > 1) return { notProduct: true };
+    var res = { coef: 1, mono: {}, polys: [] };
+    function addPoly(p, times) {
+      for (var t = 0; t < times; t++) {
+        if (p.length === 1) { res.coef *= p[0].c; res.mono = mulM(res.mono, p[0].m); }
+        else res.polys.push(p);
+      }
+    }
+    function walk(n, times) {
+      switch (n.k) {
+        case 'num': res.coef *= Math.pow(n.v, times); break;
+        case 'var': res.mono[n.v] = (res.mono[n.v] || 0) + times; break;
+        case 'pow': walk(n.base, times * n.e); break;
+        case 'prod': n.items.forEach(function (it) { walk(it, times); }); break;
+        case 'par': walk(n.e, times); break;
+        default:
+          if (n.terms.length === 1) { if (n.terms[0].s < 0 && times % 2 === 1) res.coef = -res.coef; walk(n.terms[0].node, times); }
+          else addPoly(astPoly(n), times);
+      }
+    }
+    walk(ast, 1);
+    return res;
+  }
+  function isDOS(p) {
+    if (p.length !== 2 || sgn(p[0].c) === sgn(p[1].c)) return false;
+    return p.every(function (t) { var r = Math.round(Math.sqrt(Math.abs(t.c))); if (r * r !== Math.abs(t.c)) return false; for (var v in t.m) if (t.m[v] % 2) return false; return true; });
+  }
+  function isCubes(p) {
+    if (p.length !== 2) return false;
+    return p.every(function (t) { var r = Math.round(Math.cbrt(Math.abs(t.c))); if (r * r * r !== Math.abs(t.c)) return false; for (var v in t.m) if (t.m[v] % 3) return false; return true; });
+  }
+  function reducibleMsg(p) {
+    var h = pexpr(p), F = factorize(p);
+    if (isDOS(p)) return h + ' 是平方差，還可以再分解。';
+    if (isCubes(p)) return h + ' 還可以用立方和／立方差公式再分解。';
+    if (p.length === 3 && F.factors.length === 1 && F.factors[0].n === 2) return h + ' 是完全平方式，還可以再分解。';
+    if (p.length === 3 && totalDeg(p) === 2) return '這個二次式 ' + h + ' 還可以再分解（試用十字相乘法）。';
+    if (p.length === 4) return h + ' 還可以再分解（試用分組分解）。';
+    return h + ' 還可以再分解。';
+  }
+  function irreducibleShape(F) { return Math.abs(F.c) === 1 && !Object.keys(F.mono).length && F.factors.length === 1 && F.factors[0].n === 1; }
+  // 第 1 步：檢查學生的因式分解
+  function checkFactored(orig, str) {
+    var r = wrapErr(function () { return parsePoly(str); });
+    if (!r.ok) return { ok: false, msg: r.msg };
+    var p = r.value.poly;
+    if (!eq(p, orig)) {
+      if (eq(p, neg(orig))) return { ok: false, msg: '展開後與原式相差一個負號，請檢查正負號。' };
+      return { ok: false, msg: '展開後與原式不相等，請再檢查。' };
+    }
+    var F = factorize(orig), fl = flatten(r.value.ast);
+    if (fl.notProduct) {
+      if (orig.length === 1 || irreducibleShape(F)) return { ok: true, msg: '正確！這個式子已不能再分解。', fl: { coef: orig.length === 1 ? orig[0].c : 1, mono: orig.length === 1 ? copyM(orig[0].m) : {}, polys: orig.length === 1 ? [] : [orig] }, unsure: F.unsure };
+      return { ok: false, msg: '還未分解：請把它寫成因式相乘的形式，例如 3<i>x</i>(<i>x</i> + 2)。' };
+    }
+    for (var i = 0; i < fl.polys.length; i++) {
+      var q = fl.polys[i], k = intContent(q), mc = monoContent(q);
+      if (k > 1) return { ok: false, msg: pexpr(q) + ' 還可以再抽公因數 ' + k + '。' };
+      if (Object.keys(mc).length) return { ok: false, msg: pexpr(q) + ' 還可以再抽公因式 ' + expr(monoHTML(mc)) + '。' };
+      if (factorCount(factorize(q)) > 1) return { ok: false, msg: reducibleMsg(q) };
+    }
+    return { ok: true, msg: '正確！已完全因式分解。', fl: fl, unsure: F.unsure };
+  }
+  function methodHint(q) {
+    var h = pexpr(q), F = factorize(q);
+    if (isDOS(q)) return h + ' 可用平方差公式：' + expr('<i>a</i><sup>2</sup> ' + MINUS + ' <i>b</i><sup>2</sup> = (<i>a</i> + <i>b</i>)(<i>a</i> ' + MINUS + ' <i>b</i>)') + '。';
+    if (isCubes(q)) return h + ' 可用立方和／立方差公式：' + expr('<i>a</i><sup>3</sup> ± <i>b</i><sup>3</sup> = (<i>a</i> ± <i>b</i>)(<i>a</i><sup>2</sup> ∓ <i>ab</i> + <i>b</i><sup>2</sup>)') + '。';
+    if (q.length === 3 && F.factors.length === 1 && F.factors[0].n === 2) return h + ' 是完全平方式：' + expr('<i>a</i><sup>2</sup> ± 2<i>ab</i> + <i>b</i><sup>2</sup> = (<i>a</i> ± <i>b</i>)<sup>2</sup>') + '。';
+    if (q.length === 3 && totalDeg(q) === 2) {
+      var vs = varsOf(q);
+      if (vs.length === 1 && q[0].c === 1 && q[0].m[vs[0]] === 2) {
+        var b = 0, c = 0; q.forEach(function (t) { if (t.m[vs[0]] === 1) b = t.c; if (!t.m[vs[0]]) c = t.c; });
+        return '用十字相乘法分解 ' + h + '：找兩個數，相乘得 ' + expr(String(c).replace('-', MINUS)) + '、相加得 ' + expr(String(b).replace('-', MINUS)) + '。';
+      }
+      return '用十字相乘法分解二次式 ' + h + '。';
+    }
+    if (q.length === 4) return '試把 ' + h + ' 分成兩組，各自抽公因式，再抽出共同的括號（分組分解）。';
+    return '試用因式定理：找出令 ' + h + ' 等於 0 的值，從而找出一次因式。';
+  }
+  // 提示：[提示1, 提示2, 答案文字, 答案 HTML]
+  function hintsFor(P) {
+    var F = factorize(P), ans = factoredText(F), ansH = factoredHTML(F);
+    if (P.length <= 1) return ['這是單項式（或常數），不用分解，照抄即可。', '這是單項式（或常數），不用分解，照抄即可。', polyText(P), expr(polyHTML(P))];
+    var k = Math.abs(F.c), hasM = Object.keys(F.mono).length > 0, common = k > 1 || hasM;
+    var rest = divMonoInt(P, F.mono, F.c), restF = factorize(rest), more = factorCount(restF) > 1 ? methodHint(rest) : null;
+    var commonH = expr((k > 1 ? k : '') + monoHTML(F.mono));
+    var h1, h2;
+    if (common) {
+      h1 = '先抽出公因式 ' + commonH + (F.c < 0 ? '（也可連負號一起抽出）' : '') + '。';
+      h2 = more ? '抽出公因式後，' + more : '抽出公因式後，括號內的 ' + pexpr(rest) + ' 已不能再分解。';
+    } else if (more) { h1 = more; h2 = more + ' 答案的形式是幾個括號相乘。'; }
+    else { h1 = '這個式子沒有公因式，也不能再分解，照抄即可。'; h2 = h1; }
+    if (F.unsure) h2 += '（系統未能確定是否還可以再分解。）';
+    return [h1, h2, ans, ansH];
+  }
+
+  /* ---------- 第 2 步：約去公因式（點選因式卡） ---------- */
+  function chipsFrom(fl) {
+    var chips = [], c = Math.abs(fl.coef);
+    if (c !== 1) chips.push({ k: 'c', v: c, v0: c, alive: true });
+    Object.keys(fl.mono).sort().forEach(function (x) { if (fl.mono[x] > 0) chips.push({ k: 'v', x: x, e: fl.mono[x], e0: fl.mono[x], alive: true }); });
+    fl.polys.forEach(function (p) { chips.push({ k: 'p', p: p, alive: true }); });
+    return chips;
+  }
+  function newCancel(nfl, dfl) { return { sign: sgn(nfl.coef) * sgn(dfl.coef), num: chipsFrom(nfl), den: chipsFrom(dfl), flips: 0 }; }
+  function cloneState(s) { return JSON.parse(JSON.stringify(s)); }
+  function vpow(x, e) { var m = {}; if (e > 0) m[x] = e; return e > 0 ? monoHTML(m) : '1'; }
+  function chipHTML(ch) {
+    if (ch.k === 'c') return expr(!ch.alive ? '<del>' + ch.v0 + '</del>' : ch.v !== ch.v0 ? '<del>' + ch.v0 + '</del>' + ch.v : String(ch.v));
+    if (ch.k === 'v') return expr(!ch.alive ? '<del>' + vpow(ch.x, ch.e0) + '</del>' : ch.e !== ch.e0 ? '<del>' + vpow(ch.x, ch.e0) + '</del>' + vpow(ch.x, ch.e) : vpow(ch.x, ch.e));
+    var h = '(' + polyHTML(ch.p) + ')';
+    return expr(ch.alive ? h : '<del>' + h + '</del>');
+  }
+  function pairOK(A, B) {
+    if (!A.alive || !B.alive) return false;
+    if (A.k === 'c' && B.k === 'c') return gcd(A.v, B.v) > 1;
+    if (A.k === 'v' && B.k === 'v') return A.x === B.x;
+    if (A.k === 'p' && B.k === 'p') return eq(A.p, B.p) || eq(A.p, neg(B.p));
+    return false;
+  }
+  function findPair(s) {
+    for (var i = 0; i < s.num.length; i++) for (var j = 0; j < s.den.length; j++) if (pairOK(s.num[i], s.den[j])) return [i, j];
+    return null;
+  }
+  function tryCancel(s, i, j) {
+    var A = s.num[i], B = s.den[j];
+    if (!A || !B || !A.alive || !B.alive) return { ok: false, msg: '這個因式已經約去了。' };
+    if (A.k === 'c' && B.k === 'c') {
+      var g = gcd(A.v, B.v);
+      if (g === 1) return { ok: false, msg: A.v + ' 和 ' + B.v + ' 沒有大於 1 的公因數，不能約簡。' };
+      A.v /= g; B.v /= g; if (A.v === 1) A.alive = false; if (B.v === 1) B.alive = false;
+      return { ok: true, msg: '分子和分母同除以 H.C.F. ' + g + '。' };
+    }
+    if (A.k === 'v' && B.k === 'v') {
+      if (A.x !== B.x) return { ok: false, msg: '不同的變數（' + expr('<i>' + A.x + '</i>') + ' 和 ' + expr('<i>' + B.x + '</i>') + '）不能互相約去。' };
+      var a0 = A.e, b0 = B.e, m = Math.min(a0, b0);
+      A.e -= m; B.e -= m; if (!A.e) A.alive = false; if (!B.e) B.alive = false;
+      var res = a0 > b0 ? vpow(A.x, a0 - b0) : a0 < b0 ? wrapFrac('1', vpow(A.x, b0 - a0)) : '1';
+      return { ok: true, msg: '根據指數定律：' + expr(wrapFrac(vpow(A.x, a0), vpow(A.x, b0)) + ' = ' + res) + '。' };
+    }
+    if (A.k === 'p' && B.k === 'p') {
+      if (eq(A.p, B.p)) { A.alive = B.alive = false; return { ok: true, msg: '約去公因式 ' + pexpr(A.p) + '。' }; }
+      if (eq(A.p, neg(B.p))) {
+        A.alive = B.alive = false; s.sign = -s.sign; s.flips++;
+        return { ok: true, flip: true, msg: '留意：' + expr('(' + polyHTML(A.p) + ') = ' + MINUS + '(' + polyHTML(B.p) + ')') + '，約去後要乘以 ' + expr(MINUS + '1') + '。' };
+      }
+      return { ok: false, msg: pexpr(A.p) + ' 和 ' + pexpr(B.p) + ' 不相同，不能約去。' };
+    }
+    var P = A.k === 'p' ? A : (B.k === 'p' ? B : null), O = P === A ? B : A;
+    if (P) {
+      var inside = O.k === 'v' ? P.p.some(function (t) { return t.m[O.x]; }) : P.p.some(function (t) { return t.c % O.v === 0; });
+      if (inside) return { ok: false, msg: '不能只約去括號 ' + pexpr(P.p) + ' 內的某一項，只可以約去整個相同的因式。' };
+      return { ok: false, msg: '這兩個因式不相同，不能約去。' };
+    }
+    return { ok: false, msg: '數字和變數不能互相約去。' };
+  }
+  function cancelResult(s) {
+    function side(chips, sign) {
+      var fl = { coef: sign, mono: {}, polys: [] };
+      chips.forEach(function (ch) { if (!ch.alive) return; if (ch.k === 'c') fl.coef *= ch.v; else if (ch.k === 'v') fl.mono[ch.x] = (fl.mono[ch.x] || 0) + ch.e; else fl.polys.push(ch.p); });
+      return fl;
+    }
+    var n = side(s.num, s.sign), d = side(s.den, 1);
+    return { num: n, den: d, N: flPoly(n), D: flPoly(d), html: flFracHTML(n, d), text: flFracText(n, d) };
+  }
+  function chipsStaticHTML(s) {
+    function side(ch) { if (!ch.length) return '1'; return ch.map(function (c) { return chipHTML(c).replace(/^<span class="expr">|<\/span>$/g, ''); }).join(''); }
+    return expr((s.sign < 0 ? sgnH() : '') + wrapFrac(side(s.num), side(s.den)));
+  }
+  function flPoly(fl) { var p = C(fl.coef); if (Object.keys(fl.mono).length) p = mul(p, [{ c: 1, m: fl.mono }]); fl.polys.forEach(function (q) { p = mul(p, q); }); return p; }
+
+  /* ---------- 最簡分式及第 3 步檢查 ---------- */
+  function simplest(N0, D0) {
+    var a = factorize(N0), b = factorize(D0), g = gcd(a.c, b.c), kc = a.c / g, kd = b.c / g, cancelled = g > 1;
+    if (kd < 0) { kd = -kd; kc = -kc; }
+    var mn = {}, md = {};
+    varsOf([{ c: 1, m: a.mono }, { c: 1, m: b.mono }]).forEach(function (v) {
+      var ea = a.mono[v] || 0, eb = b.mono[v] || 0; if (ea && eb) cancelled = true;
+      if (ea > eb) mn[v] = ea - eb; else if (eb > ea) md[v] = eb - ea;
+    });
+    var bf = b.factors.map(function (f) { return { p: f.p, n: f.n, k: pkey(f.p) }; }), np = [], dp = [];
+    a.factors.forEach(function (f) {
+      var n = f.n, k = pkey(f.p);
+      bf.forEach(function (x) { if (x.k === k && n && x.n) { var m = Math.min(n, x.n); n -= m; x.n -= m; cancelled = true; } });
+      for (var i = 0; i < n; i++) np.push(f.p);
+    });
+    bf.forEach(function (x) { for (var i = 0; i < x.n; i++) dp.push(x.p); });
+    var num = { coef: kc, mono: mn, polys: np }, den = { coef: kd, mono: md, polys: dp };
+    return { num: num, den: den, cancelled: cancelled, unsure: a.unsure || b.unsure, html: flFracHTML(num, den), text: flFracText(num, den) };
+  }
+  function checkFinal(N0, D0, str) {
+    var r = wrapErr(function () { return parseFraction(str, false); });
+    if (!r.ok) return { ok: false, msg: r.msg };
+    var n = r.value.num.poly, d = r.value.den ? r.value.den.poly : C(1);
+    if (!d.length) return { ok: false, msg: '分母不能為 0。' };
+    var lhs = mul(n, D0), rhs = mul(N0, d);
+    if (!eq(lhs, rhs)) {
+      if (eq(lhs, neg(rhs))) return { ok: false, msg: '正負號不對，請再檢查（留意 (<i>a</i> ' + MINUS + ' <i>b</i>) = ' + MINUS + '(<i>b</i> ' + MINUS + ' <i>a</i>)）。' };
+      return { ok: false, msg: '這個答案與原式不相等，請再檢查。' };
+    }
+    if (!n.length) return { ok: true, msg: '正確！' };
+    if (simplest(n, d).cancelled) return { ok: false, msg: '答案的值正確，但分子和分母還有公因式，還可以再約簡。' };
+    return { ok: true, msg: '完全正確！這就是最簡分式。' };
+  }
+
+  return {
+    AlgError: AlgError, esc: esc, parsePoly: parsePoly, parseFraction: parseFraction, splitFraction: splitFraction, wrapErr: wrapErr,
+    factorize: factorize, factoredText: factoredText, factoredHTML: factoredHTML, polyHTML: polyHTML, polyText: polyText, polyFracHTML: polyFracHTML,
+    flFracHTML: flFracHTML, flFracText: flFracText, flatten: flatten, checkFactored: checkFactored, hintsFor: hintsFor,
+    newCancel: newCancel, cloneState: cloneState, tryCancel: tryCancel, findPair: findPair, cancelResult: cancelResult, chipHTML: chipHTML, chipsStaticHTML: chipsStaticHTML,
+    simplest: simplest, checkFinal: checkFinal, expr: expr, wrapFrac: wrapFrac,
+    _: { mul: mul, add: add, sub: sub, neg: neg, eq: eq, pow: pow, C: C, V: V, evalP: evalP, flPoly: flPoly, factorCount: factorCount, pkey: pkey, isConst: isConst }
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Algebra;
+</script>
+
+<script>
+/* ================= 介面、龍虎榜及遊戲流程 ================= */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = Algebra.esc;
+  var LEVEL_NAMES = { 1: '初級', 2: '中級', 3: '高級', mix: '綜合挑戰' };
+  var TIME = { 1: 60, 2: 90, 3: 120 };
+  var ROUND = 10, LIVES = 3, STORE_KEY = 'afg-best-v1', SOUND_KEY = 'afg-sound', NAME_KEY = 'afg-name', CLASS_KEY = 'afg-class', NAME_MAX = 16;
+  var CLASSES = ['2A', '2B', '2C'];
+  var S = null, timerId = null, soundOn = true, actx = null, lastEntryId = null, selectedClass = '';
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function loadBest() { try { return JSON.parse(lsGet(STORE_KEY)) || {}; } catch (e) { return {}; } }
+  function saveBest(o) { lsSet(STORE_KEY, JSON.stringify(o)); }
+  soundOn = lsGet(SOUND_KEY) !== 'off';
+
+  /* ---------- 名字與班別 ---------- */
+  function cleanName(s) {
+    s = String(s == null ? '' : s).replace(/[\u0000-\u001F\u007F<>]/g, '').replace(/\s+/g, ' ').trim();
+    return Array.from(s).slice(0, NAME_MAX).join('');
+  }
+  function cleanClass(c) { c = String(c == null ? '' : c).trim().toUpperCase(); return CLASSES.indexOf(c) >= 0 ? c : ''; }
+  function classLabel(c) { return cleanClass(c) || '未分班'; }
+  function setClassUI(c) {
+    selectedClass = cleanClass(c);
+    document.querySelectorAll('#class-pills button').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-class') === selectedClass);
+    });
+    if (selectedClass) { $('class-err').textContent = ''; $('class-row').classList.remove('err'); lsSet(CLASS_KEY, selectedClass); }
+  }
+  function requireIdentity() {
+    var raw = $('player-name').value, n = cleanName(raw), row = $('name-row'), ok = true;
+    if (!n) {
+      $('name-err').textContent = '請先輸入你的名字，才可開始遊戲。';
+      row.classList.remove('err'); void row.offsetWidth; row.classList.add('err');
+      $('player-name').focus();
+      ok = false;
+    } else {
+      $('name-err').textContent = Array.from(raw.trim()).length > NAME_MAX ? '名字最多 ' + NAME_MAX + ' 個字，已自動截短。' : '';
+      row.classList.remove('err');
+      $('player-name').value = n;
+      lsSet(NAME_KEY, n);
+    }
+    var cls = cleanClass(selectedClass);
+    if (!cls) {
+      $('class-err').textContent = '請先選擇班別（2A／2B／2C），才可開始遊戲。';
+      var cr = $('class-row'); cr.classList.remove('err'); void cr.offsetWidth; cr.classList.add('err');
+      if (ok) document.querySelector('#class-pills button').focus();
+      ok = false;
+    } else {
+      $('class-err').textContent = '';
+      $('class-row').classList.remove('err');
+      setClassUI(cls);
+    }
+    return ok ? { name: n, class: cls } : null;
+  }
+
+  /* ---------- 龍虎榜（本機 localStorage / Firebase 即時模式） ---------- */
+  var Board = (function () {
+    var KEY = 'afg-board-v1', MAX = 300, POLL_MS = 5000, RETRY_MS = 20000;
+    var mode = 'local', failed = false, rulesNeedUpdate = false, remote = {}, subs = [], base = null, useQuery = false, es = null, pollId = null, retryId = null;
+    var QUERY = '?orderBy=%22score%22&limitToLast=200';
+    function sanitize(x, id) {
+      if (!x || typeof x !== 'object') return null;
+      var m = String(x.mode);
+      if (!LEVEL_NAMES[m]) return null;
+      var score = Math.round(Number(x.score)); if (!isFinite(score) || score < 0) return null;
+      var acc = Math.round(Number(x.acc)); if (!isFinite(acc)) acc = 0;
+      var ts = Number(x.ts); if (!isFinite(ts)) ts = 0;
+      var cls = cleanClass(x['class']);
+      return { id: String(id || x.id || ''), name: cleanName(x.name) || '（無名氏）', score: Math.min(score, 99999), mode: m, acc: Math.max(0, Math.min(100, acc)), correct: Number(x.correct) || 0, answered: Number(x.answered) || 0, ts: ts, 'class': cls };
+    }
+    function loadLocal() { try { var a = JSON.parse(lsGet(KEY)); return Array.isArray(a) ? a.map(function (x) { return sanitize(x); }).filter(Boolean) : []; } catch (e) { return []; } }
+    function sortList(a) { return a.sort(function (x, y) { return (y.score - x.score) || (y.acc - x.acc) || (x.ts - y.ts); }); }
+    function notify() { subs.forEach(function (f) { try { f(); } catch (e) {} }); }
+    function warn(msg, err) { if (window.console) console.warn('龍虎榜：' + msg, err && err.message ? err.message : (err || '')); }
+    function getJSON(url) { return fetch(url, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
+    // 有 .indexOn 時只取最高 200 個；否則取全部再在本機排序
+    var queryKnown = false;
+    function loadOnce() {
+      if (queryKnown && !useQuery) return getJSON(base + '.json');
+      return getJSON(base + '.json' + QUERY).then(function (d) { useQuery = true; queryKnown = true; return d; }, function (err) {
+        return getJSON(base + '.json').then(function (d) { useQuery = false; queryKnown = true; return d; }); // 未設定 .indexOn：改為取全部
+      });
+    }
+    function setLive(data) { remote = data && typeof data === 'object' ? data : {}; mode = 'live'; failed = false; notify(); }
+    function goOffline(err) { warn('連線失敗，暫時改用本機模式', err); var changed = mode !== 'local' || !failed; mode = 'local'; failed = true; if (changed) notify(); }
+    function closeStream() { if (es) { try { es.close(); } catch (e) {} es = null; } }
+    function startPolling() {
+      closeStream();
+      if (pollId) return;
+      pollId = setInterval(function () { loadOnce().then(setLive, goOffline); }, POLL_MS);
+    }
+    function startStream() {
+      if (!window.EventSource) { startPolling(); return; }
+      try { es = new EventSource(base + '.json' + (useQuery ? QUERY : '')); } catch (e) { startPolling(); return; }
+      var errors = 0;
+      function handler(type) {
+        return function (ev) {
+          errors = 0;
+          try { remote = BoardCore.applyEvent(remote, type, JSON.parse(ev.data)); mode = 'live'; failed = false; notify(); } catch (e) { warn('串流資料無法解讀', e); }
+        };
+      }
+      es.addEventListener('put', handler('put'));
+      es.addEventListener('patch', handler('patch'));
+      es.addEventListener('cancel', function () { warn('串流被伺服器取消（可能是規則不容許讀取），改用定時更新'); startPolling(); });
+      es.addEventListener('auth_revoked', function () { startPolling(); });
+      es.onerror = function () { errors++; if (!es || es.readyState === 2 || errors >= 3) { warn('即時串流中斷，改用定時更新'); startPolling(); } };
+    }
+    function connect() {
+      retryId = null;
+      loadOnce().then(function (d) { setLive(d); startStream(); }, function (err) { goOffline(err); retryId = setTimeout(connect, RETRY_MS); });
+    }
+    function init() {
+      window.addEventListener('storage', function (e) { if (e.key === KEY || e.key === null) notify(); });
+      var url = typeof FIREBASE_CONFIG !== 'undefined' && FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL;
+      if (!url || !window.fetch) { mode = 'local'; return; }
+      base = String(url).replace(/\/+$/, '') + '/' + LEADERBOARD_PATH;
+      mode = 'wait'; notify();
+      connect();
+    }
+    function add(entry) {
+      var e = sanitize(entry, entry.id);
+      lsSet(KEY, JSON.stringify(sortList(loadLocal().concat([e])).slice(0, MAX)));
+      if (base) {
+        var payload = { name: e.name, score: e.score, mode: e.mode, acc: e.acc, correct: e.correct, answered: e.answered, ts: e.ts, 'class': e['class'] };
+        if (mode === 'live') { remote = BoardCore.applyEvent(remote, 'put', { path: '/' + e.id, data: payload }); }
+        // 只會「新增」/leaderboard/<新 id>，配合規則 !data.exists()；時間由伺服器填寫，避免裝置時鐘不準
+        var body = JSON.parse(JSON.stringify(payload)); body.ts = { '.sv': 'timestamp' };
+        fetch(base + '/' + e.id + '.json', { method: 'PUT', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } })
+          .then(function (r) {
+            if (!r.ok) {
+              var err = new Error('HTTP ' + r.status);
+              err.status = r.status;
+              throw err;
+            }
+          })
+          .catch(function (err) {
+            warn('成績未能上載到雲端（已保存在本機）', err);
+            // 現行規則若尚未加入 class 欄位，$other:false 會拒絕寫入（通常 HTTP 400）
+            if (err && (err.status === 400 || err.status === 401 || /HTTP 40[01]/.test(String(err.message || '')))) {
+              rulesNeedUpdate = true; notify();
+            }
+          });
+      }
+      notify();
+    }
+    // opts: { mode: 'all'|..., class: 'all'|'2A'|'2B'|'2C'|'none' }
+    function list(opts) {
+      if (typeof opts === 'string') opts = { mode: opts, 'class': 'all' };
+      opts = opts || {};
+      var a = mode === 'live' ? Object.keys(remote).map(function (k) { return sanitize(remote[k], k); }).filter(Boolean) : loadLocal();
+      var mf = opts.mode || 'all', cf = opts['class'] || 'all';
+      if (mf && mf !== 'all') a = a.filter(function (x) { return x.mode === mf; });
+      if (cf && cf !== 'all') {
+        if (cf === 'none') a = a.filter(function (x) { return !x['class']; });
+        else a = a.filter(function (x) { return x['class'] === cf; });
+      }
+      return sortList(a);
+    }
+    function clearLocal() { try { localStorage.removeItem(KEY); } catch (e) {} notify(); }
+    return { init: init, add: add, list: list, clearLocal: clearLocal, onChange: function (f) { subs.push(f); }, mode: function () { return mode; }, failed: function () { return failed; }, rulesNeedUpdate: function () { return rulesNeedUpdate; } };
+  })();
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDate(ts) { if (!ts) return ''; var d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function fmtTime(ts) { var d = new Date(ts); return fmtDate(ts) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  var boardState = {
+    'board-start': { filter: 'all', classFilter: 'all', highlight: null },
+    'board-end': { filter: 'all', classFilter: 'all', highlight: null }
+  };
+  function renderBoard(id) {
+    var el = $(id), st = boardState[id]; if (!el) return;
+    var mode = Board.mode(), needRules = Board.rulesNeedUpdate();
+    var badge = needRules ? '<span class="conn warn-rules">請老師更新數據庫規則以支援分班</span>'
+      : mode === 'live' ? '<span class="conn live">即時連線模式</span>'
+      : mode === 'wait' ? '<span class="conn wait">連線中…</span>'
+      : '<span class="conn">本機模式' + (Board.failed() ? '（連線失敗）' : '') + '</span>';
+    var classTabs = [['2A', '2A'], ['2B', '2B'], ['2C', '2C'], ['all', '全部'], ['none', '未分班']].map(function (t) {
+      return '<button type="button" data-c="' + t[0] + '" class="' + (st.classFilter === t[0] ? 'on' : '') + '">' + t[1] + '</button>';
+    }).join('');
+    var tabs = [['all', '全部'], ['1', '初級'], ['2', '中級'], ['3', '高級'], ['mix', '綜合']].map(function (t) {
+      return '<button type="button" data-f="' + t[0] + '" class="' + (st.filter === t[0] ? 'on' : '') + '">' + t[1] + '</button>';
+    }).join('');
+    var all = Board.list({ mode: st.filter, 'class': st.classFilter }), rows = '', medal = ['🥇', '🥈', '🥉'];
+    var showClassCol = st.classFilter === 'all' || st.classFilter === 'none';
+    function row(e, rank) {
+      var cl = e['class'] ? '<span>' + esc(e['class']) + '</span>' : '<span class="none">未分班</span>';
+      return '<tr class="' + (e.id && e.id === st.highlight ? 'me' : '') + '"><td class="rk">' + (rank <= 3 ? medal[rank - 1] : rank) + '</td><td class="nm" title="' + esc(e.name) + '">' + esc(e.name) + '</td>' +
+        (showClassCol ? '<td class="cl">' + cl + '</td>' : '') +
+        '<td class="sc">' + e.score + '</td><td class="md"><span>' + LEVEL_NAMES[e.mode] + '</span></td><td class="ac">' + e.acc + '%</td><td class="dt" title="' + fmtTime(e.ts) + '">' + fmtDate(e.ts) + '</td></tr>';
+    }
+    all.slice(0, 10).forEach(function (e, i) { rows += row(e, i + 1); });
+    var colSpan = showClassCol ? 7 : 6;
+    if (st.highlight) {
+      var idx = -1; all.forEach(function (e, i) { if (e.id === st.highlight) idx = i; });
+      if (idx >= 10) rows += '<tr class="gap"><td colspan="' + colSpan + '">⋯</td></tr>' + row(all[idx], idx + 1);
+    }
+    var head = '<th>名次</th><th>名字</th>' + (showClassCol ? '<th>班別</th>' : '') + '<th>得分</th><th>模式</th><th>準確率</th><th class="col-date">日期</th>';
+    var body = all.length ? '<table class="board-table"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table>'
+      : '<div class="board-empty">暫時未有紀錄，快來挑戰吧！</div>';
+    var note = needRules ? '成績已保存在本機；雲端寫入需老師更新 Firebase 規則（加入 class 欄位）。'
+      : mode === 'live' ? '成績會即時同步到所有連線裝置。可按班別查看本班龍虎榜。'
+      : '紀錄只儲存在這部裝置的瀏覽器內。';
+    var rulesNote = needRules ? '<div class="board-rules-note">⚠️ 請老師更新數據庫規則以支援分班（詳見網頁源碼「龍虎榜設定」註解）。在此之前，網上寫入會失敗，成績仍會存於本機。</div>' : '';
+    el.innerHTML = '<div class="board-head"><h3>🏅 即時龍虎榜</h3>' + badge + '</div>' + rulesNote +
+      '<div class="board-class-tabs">' + classTabs + '</div><div class="board-tabs">' + tabs + '</div>' + body +
+      '<div class="board-foot"><span>' + note + '</span><button type="button" class="link-btn" data-act="clear">🧹 清除本機龍虎榜（老師用）</button></div>';
+  }
+  function renderBoards() { renderBoard('board-start'); renderBoard('board-end'); }
+  function rankOf(id, opts) { var a = Board.list(opts); for (var i = 0; i < a.length; i++) if (a[i].id === id) return i + 1; return 0; }
+  ['board-start', 'board-end'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) {
+      var t = e.target.closest('button'); if (!t) return;
+      if (t.dataset.c) { boardState[id].classFilter = t.dataset.c; renderBoard(id); }
+      else if (t.dataset.f) { boardState[id].filter = t.dataset.f; renderBoard(id); }
+      else if (t.dataset.act === 'clear') {
+        var msg = '確定要清除這部裝置上的龍虎榜紀錄嗎？此操作不能復原。';
+        if (Board.mode() === 'live') msg += '\n\n（注意：現正使用即時連線模式，雲端龍虎榜需由老師在 Firebase 控制台刪除「' + LEADERBOARD_PATH + '」節點；這裏只會清除本機備份。）';
+        if (confirm(msg)) Board.clearLocal();
+      }
+    });
+  });
+  Board.onChange(renderBoards);
+
+  /* ---------- 音效 ---------- */
+  function beep(type) {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var notes = type === 'ok' ? [660, 880] : type === 'end' ? [523, 659, 784] : [220, 165];
+      notes.forEach(function (f, i) {
+        var o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i * 0.11;
+        o.type = type === 'bad' ? 'sawtooth' : 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+        o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.2);
+      });
+    } catch (e) {}
+  }
+
+  function showScreen(id) {
+    ['screen-start', 'screen-game', 'screen-end', 'screen-lab'].forEach(function (s) { $(s).classList.toggle('active', s === id); });
+    window.scrollTo(0, 0);
+  }
+  function renderStart() {
+    var best = loadBest();
+    document.querySelectorAll('[data-best]').forEach(function (el) { var v = best[el.getAttribute('data-best')]; el.textContent = v ? v : '—'; });
+    [1, 2, 3].forEach(function (lv) { $('eg-' + lv).innerHTML = '例：' + Engine.generate(lv).qHTML; });
+    $('eg-mix').innerHTML = '例：' + Engine.generate(1 + Math.floor(Math.random() * 3)).qHTML;
+    boardState['board-start'].highlight = lastEntryId;
+    if (selectedClass) boardState['board-start'].classFilter = selectedClass;
+    renderBoard('board-start');
+  }
+  function renderLives(breakIdx) {
+    var h = '';
+    for (var i = 0; i < LIVES; i++) h += '<span class="' + (i === breakIdx ? 'breaking' : (i >= S.lives ? 'lost' : '')) + '">❤️</span>';
+    $('hud-lives').innerHTML = h;
+  }
+  function renderHud() {
+    $('hud-level').textContent = LEVEL_NAMES[S.level];
+    $('hud-name').textContent = '👤 ' + S.name + '・' + S['class'];
+    $('hud-score').textContent = S.score;
+    var st = $('hud-streak');
+    st.textContent = S.streak >= 2 ? '🔥 連擊 ×' + S.streak : '連擊 ×' + S.streak;
+    st.classList.toggle('hot', S.streak >= 2);
+    $('progress-fill').style.width = (100 * (S.qi - (S.answered ? 0 : 1)) / ROUND) + '%';
+    $('progress-text').textContent = '第 ' + S.qi + ' / ' + ROUND + ' 題';
+  }
+
+  /* ---------- 遊戲 ---------- */
+  function startGame(level, keepIdentity) {
+    var idn = keepIdentity && S ? { name: S.name, 'class': S['class'] } : requireIdentity();
+    if (!idn) return;
+    S = { level: level, name: idn.name, 'class': idn['class'], qi: 0, score: 0, streak: 0, maxStreak: 0, lives: LIVES, correct: 0, answeredCount: 0, history: [], start: Date.now(), answered: true };
+    boardState['board-start'].classFilter = idn['class'];
+    boardState['board-end'].classFilter = idn['class'];
+    showScreen('screen-game');
+    renderLives(-1);
+    nextQuestion();
+  }
+  function nextQuestion() {
+    if (S.qi >= ROUND || S.lives <= 0) { endGame(); return; }
+    var lv = S.level === 'mix' ? 1 + Math.floor(Math.random() * 3) : S.level;
+    S.q = Engine.generate(lv); S.qi++; S.answered = false;
+    $('q-num').textContent = '第 ' + S.qi + ' 題' + (S.level === 'mix' ? '（' + LEVEL_NAMES[lv] + '）' : '');
+    var qel = $('question');
+    qel.innerHTML = S.q.qHTML; qel.classList.remove('enter'); void qel.offsetWidth; qel.classList.add('enter');
+    var box = $('options'); box.innerHTML = '';
+    S.q.options.forEach(function (o, i) {
+      var b = document.createElement('button');
+      b.className = 'opt'; b.setAttribute('data-i', i);
+      b.innerHTML = '<span class="opt-label">' + 'ABCD'[i] + '</span><span class="opt-expr">' + o.html + '</span>';
+      b.addEventListener('click', function () { answer(i); });
+      box.appendChild(b);
+    });
+    $('feedback').classList.add('hidden');
+    renderHud();
+    S.tLimit = TIME[lv]; S.tStart = performance.now();
+    clearInterval(timerId); timerId = setInterval(tick, 100); tick();
+  }
+  function tick() {
+    if (!S || S.answered) return;
+    var rem = Math.max(0, S.tLimit - (performance.now() - S.tStart) / 1000);
+    $('timer').textContent = '⏱ ' + Math.ceil(rem) + ' 秒';
+    $('timer').classList.toggle('warn', rem <= 10);
+    var f = $('timebar-fill'), ratio = rem / S.tLimit;
+    f.style.width = (100 * ratio) + '%';
+    f.className = ratio < 0.25 ? 'low' : ratio < 0.5 ? 'mid' : '';
+    if (rem <= 0) answer(-1);
+  }
+  function popScore(n) {
+    var el = document.createElement('span'); el.className = 'pop'; el.textContent = '+' + n;
+    $('hud-score').parentNode.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1000);
+  }
+  function answer(idx) {
+    if (!S || S.answered) return;
+    S.answered = true; clearInterval(timerId);
+    var q = S.q, rem = Math.max(0, S.tLimit - (performance.now() - S.tStart) / 1000);
+    var ok = idx >= 0 && q.options[idx].correct;
+    $('options').querySelectorAll('.opt').forEach(function (b, i) {
+      b.disabled = true;
+      if (i === q.answerIndex) b.classList.add('correct'); else if (i === idx) b.classList.add('wrong'); else b.classList.add('dim');
+    });
+    var title = $('fb-title'), gain = 0;
+    S.answeredCount++;
+    if (ok) {
+      S.streak++; S.maxStreak = Math.max(S.maxStreak, S.streak); S.correct++;
+      var timeBonus = Math.ceil(150 * rem / S.tLimit),   // 時間獎勵最多 150，每題最多 350 分，每局最多 3500 分（配合 Firebase 規則）
+         combo = Math.min(100, (S.streak - 1) * 20);
+      gain = 100 + timeBonus + combo; S.score += gain;
+      title.className = 'fb-title ok';
+      title.innerHTML = '✅ 答對了！ +' + gain + ' <small>（基本分 100・時間獎勵 ' + timeBonus + (combo ? '・連擊加分 ' + combo : '') + '）</small>';
+      popScore(gain); beep('ok');
+    } else {
+      S.streak = 0; S.lives--;
+      renderLives(S.lives);
+      title.className = 'fb-title bad';
+      title.innerHTML = (idx < 0 ? '⏰ 時間到！' : '❌ 答錯了！') + ' <small>失去一條命，尚餘 ' + S.lives + ' 條</small>';
+      beep('bad');
+    }
+    $('fb-answer').innerHTML = '正確答案：' + q.answerHTML;
+    var sh = '';
+    q.steps.forEach(function (st) {
+      sh += '<div class="step"><div class="step-t">' + st.t + '</div>' + (st.e ? '<div class="step-e">' + (st.eq ? '<span class="eqsign">=</span>' : '') + st.e + '</div>' : '') + '</div>';
+    });
+    $('fb-steps').innerHTML = '<div class="step"><div class="step-t">原式：</div><div class="step-e">' + q.qHTML + '</div></div>' + sh;
+    $('btn-next').textContent = (S.qi >= ROUND || S.lives <= 0) ? '查看結果 🏁' : '下一題 ➜';
+    $('feedback').classList.remove('hidden');
+    S.history.push({ q: q, idx: idx, ok: ok, gain: gain });
+    renderHud();
+    setTimeout(function () {
+      var r = $('feedback').getBoundingClientRect();
+      if (r.top > window.innerHeight * 0.6) $('feedback').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 350);
+  }
+  function confetti() {
+    var colors = ['#5b5bf0', '#ff8a3d', '#22c55e', '#fbbf24', '#ec4899', '#06b6d4'];
+    for (var i = 0; i < 60; i++) {
+      var c = document.createElement('span'); c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw'; c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (2 + Math.random() * 2) + 's'; c.style.animationDelay = Math.random() * 0.6 + 's';
+      document.body.appendChild(c);
+      (function (el) { setTimeout(function () { el.remove(); }, 5000); })(c);
+    }
+  }
+  function endGame() {
+    clearInterval(timerId);
+    var best = loadBest(), prev = best[S.level] || 0, isNew = S.score > prev && S.score > 0;
+    if (isNew) { best[S.level] = S.score; saveBest(best); }
+    var secs = Math.round((Date.now() - S.start) / 1000), acc = S.answeredCount ? Math.round(100 * S.correct / S.answeredCount) : 0;
+    $('end-player').textContent = '👤 ' + S.name + '（' + S['class'] + '）';
+    $('end-score').textContent = S.score;
+    $('end-correct').textContent = S.correct + ' / ' + S.answeredCount;
+    $('end-acc').textContent = acc + '%';
+    $('end-streak').textContent = S.maxStreak;
+    $('end-time').textContent = secs >= 60 ? Math.floor(secs / 60) + ' 分 ' + (secs % 60) + ' 秒' : secs + ' 秒';
+    $('end-best').textContent = Math.max(prev, S.score);
+    $('end-record').classList.toggle('hidden', !isNew);
+    var stars = S.correct >= 9 ? 3 : S.correct >= 6 ? 2 : S.correct >= 3 ? 1 : 0, sh = '';
+    for (var i = 0; i < 3; i++) sh += i < stars ? '★' : '<span class="off">★</span>';
+    $('end-stars').innerHTML = sh;
+    var title, emoji;
+    if (S.lives <= 0) { title = '生命值用完了！再接再厲！'; emoji = '💪'; }
+    else if (S.correct === ROUND) { title = '全部答對，太厲害了！'; emoji = '🏆'; }
+    else if (stars >= 2) { title = '表現出色，完成挑戰！'; emoji = '🎉'; }
+    else { title = '完成挑戰！多練習會更好！'; emoji = '📚'; }
+    $('end-title').textContent = title; $('end-emoji').textContent = emoji;
+    $('end-review').innerHTML = S.history.map(function (h) {
+      return '<li><span class="mark ' + (h.ok ? 'ok">✔' : 'bad">✘') + '</span>' + h.q.qHTML + '<span class="eqsign">=</span>' + h.q.answerHTML + '</li>';
+    }).join('');
+    var mode = String(S.level), rankEl = $('end-rank'), cls = S['class'];
+    boardState['board-end'].filter = mode;
+    boardState['board-end'].classFilter = cls;
+    if (S.score > 0) {
+      var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      lastEntryId = id;
+      boardState['board-end'].highlight = id;
+      Board.add({ id: id, name: S.name, score: S.score, mode: mode, acc: acc, correct: S.correct, answered: S.answeredCount, ts: Date.now(), 'class': cls });
+      var rank = rankOf(id, { mode: mode, 'class': cls });
+      rankEl.innerHTML = '🏅 ' + esc(S.name) + '（' + esc(cls) + '），你在本班「' + LEVEL_NAMES[mode] + '」龍虎榜排第 <b>' + rank + '</b> 名！' + (rank === 1 ? ' 🥇 冠軍！' : '');
+    } else {
+      boardState['board-end'].highlight = null;
+      rankEl.textContent = '今次未有得分，未能登上龍虎榜，再試一次吧！';
+    }
+    rankEl.classList.remove('hidden');
+    renderBoard('board-end');
+    showScreen('screen-end');
+    beep('end');
+    if (isNew || S.correct >= 8) confetti();
+  }
+
+  /* ---------- 解題實驗室 ---------- */
+  var EXAMPLES = ['(2x+4)/6', '(x^2+2x)/x', '(x^2-9)/(x+3)', '(x^2+5x+6)/(x+2)', '(x^2-4)/(x^2+4x+4)', '(x^2+3x)/(x^2-9)', '(x+1)/(x+2)', '6x^2y/(9xy^3)', '(a-b)/(b^2-a^2)', '(x^4-16)/(x^2-4x+4)'];
+  var LAB = {};
+  function labReset() { LAB = { N0: null, D0: null, okN: null, okD: null, hint: 0, cancel: null, hist: [], sel: null }; }
+  labReset();
+  function show(id, on) { $(id).classList.toggle('hidden', !on); }
+  function labRead() {
+    var ns = $('lab-num').value, ds = $('lab-den').value;
+    return Algebra.wrapErr(function () {
+      var sp = Algebra.splitFraction(ns);
+      if (sp && !ds.trim()) return Algebra.parseFraction(ns, true);
+      if (sp) throw new Algebra.AlgError('分子一欄已有「/」，請清空分母一欄，或把分子和分母分開輸入。');
+      if (!ns.trim()) throw new Algebra.AlgError('請輸入分子。');
+      var num = Algebra.parsePoly(ns);
+      if (!ds.trim()) throw new Algebra.AlgError('請輸入分母（或在分子一欄輸入整個分式，例如 (x^2-9)/(x^2+3x)）。');
+      return { num: num, den: Algebra.parsePoly(ds) };
+    });
+  }
+  function labPreview() {
+    if (!$('lab-num').value.trim() && !$('lab-den').value.trim()) { $('lab-preview').innerHTML = '<span class="muted">預覽會在這裏顯示</span>'; $('lab-msg').textContent = ''; return null; }
+    var r = labRead();
+    if (!r.ok) { $('lab-msg').innerHTML = '⚠️ ' + r.msg; return null; }
+    var v = r.value;
+    $('lab-preview').innerHTML = Algebra.expr(Algebra.wrapFrac(v.num.html, v.den.html));
+    if (!v.den.poly.length) { $('lab-msg').innerHTML = '⚠️ 分母展開後等於 0，分母不能為 0。'; return null; }
+    if (!v.num.poly.length) { $('lab-msg').innerHTML = '⚠️ 分子等於 0，整個分式的值就是 0，不用化簡。'; return null; }
+    if (Algebra._.isConst(v.num.poly) && Algebra._.isConst(v.den.poly)) { $('lab-msg').innerHTML = '⚠️ 請輸入含有變數的代數分式。'; return null; }
+    $('lab-msg').textContent = '';
+    return v;
+  }
+  function openLab() {
+    labReset();
+    ['lab-step1', 'lab-step2', 'lab-step3'].forEach(function (id) { show(id, false); });
+    show('lab-input', true);
+    showScreen('screen-lab');
+    labPreview();
+  }
+  function labStart() {
+    var v = labPreview();
+    if (!v) { if (!$('lab-msg').textContent) $('lab-msg').innerHTML = '⚠️ 請先輸入分子和分母。'; return; }
+    labReset();
+    LAB.N0 = v.num.poly; LAB.D0 = v.den.poly;
+    LAB.origHTML = Algebra.expr(Algebra.wrapFrac(v.num.html, v.den.html));
+    $('lab-orig1').innerHTML = LAB.origHTML;
+    ['lab-fn', 'lab-fd'].forEach(function (id) { $(id).value = ''; $(id).className = ''; $(id + '-pv').innerHTML = ''; $(id + '-fb').innerHTML = ''; });
+    $('lab-hint1').textContent = '提示 1'; $('lab-hint1').disabled = false;
+    show('lab-hintbox', false); show('lab-next1', false);
+    show('lab-step2', false); show('lab-step3', false);
+    show('lab-input', false); show('lab-step1', true);
+    window.scrollTo(0, 0);
+    $('lab-fn').focus();
+  }
+  function fxPreview(id) {
+    var s = $(id).value, pv = $(id + '-pv');
+    if (!s.trim()) { pv.innerHTML = ''; return; }
+    var r = Algebra.wrapErr(function () { return Algebra.parsePoly(s); });
+    pv.innerHTML = r.ok ? Algebra.expr(r.value.html) : '<span class="fb-info">⚠️ ' + r.msg + '</span>';
+  }
+  function labCheck1() {
+    [['lab-fn', LAB.N0, 'okN', '分子'], ['lab-fd', LAB.D0, 'okD', '分母']].forEach(function (pt) {
+      var inp = $(pt[0]), fb = $(pt[0] + '-fb');
+      if (!inp.value.trim()) { fb.innerHTML = '<span class="fb-bad">請輸入' + pt[3] + '的因式分解。</span>'; inp.className = 'bad'; LAB[pt[2]] = null; return; }
+      var r = Algebra.checkFactored(pt[1], inp.value);
+      LAB[pt[2]] = r.ok ? r.fl : null;
+      inp.className = r.ok ? 'ok' : 'bad';
+      fb.innerHTML = r.ok ? '<span class="fb-ok">✔ ' + r.msg + '</span>' + (r.unsure ? ' <span class="fb-info">（系統未能確定是否還可以再分解，可直接繼續。）</span>' : '') : '<span class="fb-bad">✘ ' + r.msg + '</span>';
+    });
+    var both = LAB.okN && LAB.okD;
+    show('lab-next1', !!both);
+    if (both) beep('ok');
+  }
+  function labHint1() {
+    var hn = Algebra.hintsFor(LAB.N0), hd = Algebra.hintsFor(LAB.D0), box = $('lab-hintbox');
+    LAB.hint++;
+    if (LAB.hint <= 2) {
+      var k = LAB.hint - 1;
+      box.innerHTML = '<b>提示 ' + LAB.hint + '</b><br>分子：' + hn[k] + '<br>分母：' + hd[k];
+      $('lab-hint1').textContent = LAB.hint === 1 ? '提示 2' : '顯示答案';
+    } else {
+      box.innerHTML = '<b>答案</b><br>分子 = ' + hn[3] + '<br>分母 = ' + hd[3];
+      $('lab-fn').value = hn[2]; $('lab-fd').value = hd[2];
+      fxPreview('lab-fn'); fxPreview('lab-fd');
+      $('lab-hint1').disabled = true;
+      labCheck1();
+    }
+    show('lab-hintbox', true);
+  }
+  function labGoStep2() {
+    LAB.cancel = Algebra.newCancel(LAB.okN, LAB.okD);
+    LAB.hist = []; LAB.sel = null;
+    show('lab-step2', true); show('lab-step3', false);
+    $('lab-cancel-fb').innerHTML = Algebra.findPair(LAB.cancel) ? '<span class="fb-info">點選分子的一個因式，再點選分母中相同的因式。</span>' : '<span class="fb-ok">分子和分母沒有公因式，所以這個分式已經是最簡形式！</span>';
+    renderChips();
+    $('lab-step2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function renderChips() {
+    var st = LAB.cancel;
+    ['num', 'den'].forEach(function (side) {
+      var el = $('lab-chips-' + side); el.innerHTML = '';
+      if (!st[side].length) { el.innerHTML = '<span class="chip-one">1</span>'; return; }
+      st[side].forEach(function (ch, i) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip' + (ch.alive ? '' : ' dead') + (LAB.sel && LAB.sel.side === side && LAB.sel.i === i ? ' sel' : '');
+        b.disabled = !ch.alive;
+        b.dataset.side = side; b.dataset.i = i;
+        b.innerHTML = Algebra.chipHTML(ch);
+        b.addEventListener('click', function () { chipClick(side, i); });
+        el.appendChild(b);
+      });
+    });
+    show('lab-sign', st.sign < 0);
+    var done = !Algebra.findPair(st);
+    $('lab-next2').disabled = !done;
+    $('lab-undo').disabled = !LAB.hist.length;
+    $('lab-hint2').disabled = done;
+  }
+  function chipClick(side, i) {
+    var sel = LAB.sel;
+    if (!sel || sel.side === side) { LAB.sel = (sel && sel.side === side && sel.i === i) ? null : { side: side, i: i }; renderChips(); return; }
+    var ni = side === 'num' ? i : sel.i, di = side === 'den' ? i : sel.i;
+    var snapshot = Algebra.cloneState(LAB.cancel), r = Algebra.tryCancel(LAB.cancel, ni, di), fb = $('lab-cancel-fb');
+    LAB.sel = null;
+    if (r.ok) LAB.hist.push(snapshot);
+    renderChips();
+    if (r.ok) {
+      var done = !Algebra.findPair(LAB.cancel);
+      fb.innerHTML = '<span class="fb-ok">✔ ' + r.msg + '</span>' + (done ? '<br><span class="fb-ok">🎉 已約去所有公因式！按「下一步」寫出最簡分式。</span>' : '');
+      beep('ok');
+    } else {
+      fb.innerHTML = '<span class="fb-bad">✘ ' + r.msg + '</span>';
+      [['num', ni], ['den', di]].forEach(function (x) { var b = document.querySelector('#lab-chips-' + x[0] + ' .chip[data-i="' + x[1] + '"]'); if (b) b.classList.add('nope'); });
+      beep('bad');
+    }
+  }
+  function labUndo() { if (!LAB.hist.length) return; LAB.cancel = LAB.hist.pop(); LAB.sel = null; $('lab-cancel-fb').innerHTML = '<span class="fb-info">已復原上一步。</span>'; renderChips(); }
+  function labHint2() {
+    var p = Algebra.findPair(LAB.cancel); if (!p) return;
+    renderChips();
+    [['num', p[0]], ['den', p[1]]].forEach(function (x) { var b = document.querySelector('#lab-chips-' + x[0] + ' .chip[data-i="' + x[1] + '"]'); if (b) b.classList.add('hintme'); });
+    $('lab-cancel-fb').innerHTML = '<span class="fb-info">💡 留意閃動的兩個因式，它們可以互相約去（留意正負號）。</span>';
+  }
+  function labGoStep3() {
+    LAB.result = Algebra.cancelResult(LAB.cancel);
+    $('lab-result').innerHTML = LAB.result.html;
+    $('lab-final').value = ''; $('lab-final').className = ''; $('lab-final-pv').innerHTML = ''; $('lab-final-fb').innerHTML = '';
+    show('lab-solution', false); show('lab-again-row', false);
+    show('lab-step3', true);
+    $('lab-step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function finalPreview() {
+    var s = $('lab-final').value, pv = $('lab-final-pv');
+    if (!s.trim()) { pv.innerHTML = ''; return; }
+    var r = Algebra.wrapErr(function () { return Algebra.parseFraction(s, false); });
+    pv.innerHTML = !r.ok ? '<span class="fb-info">⚠️ ' + r.msg + '</span>' : Algebra.expr(r.value.den ? Algebra.wrapFrac(r.value.num.html, r.value.den.html) : r.value.num.html);
+  }
+  function labCheck3() {
+    var inp = $('lab-final'), fb = $('lab-final-fb');
+    if (!inp.value.trim()) { fb.innerHTML = '<span class="fb-bad">請輸入最簡分式，或按「填入約簡結果」。</span>'; return; }
+    var r = Algebra.checkFinal(LAB.N0, LAB.D0, inp.value);
+    inp.className = r.ok ? 'ok' : 'bad';
+    fb.innerHTML = r.ok ? '<span class="fb-ok">✔ ' + r.msg + '</span>' : '<span class="fb-bad">✘ ' + r.msg + '</span>';
+    if (!r.ok) { beep('bad'); return; }
+    beep('ok');
+    var simp = Algebra.simplest(LAB.N0, LAB.D0);
+    var lines = [['原式', LAB.origHTML], ['因式分解', Algebra.flFracHTML(LAB.okN, LAB.okD)], ['約去公因式', Algebra.chipsStaticHTML(LAB.cancel)], ['最簡分式', simp.html]];
+    $('lab-solution').innerHTML = '<h4>✅ 完整解題步驟</h4>' + lines.map(function (l, i) {
+      return '<div class="sol-line"><span class="lbl">' + l[0] + '</span>' + (i ? '<span class="eqsign">=</span>' : '') + l[1] + '</div>';
+    }).join('') + (simp.cancelled ? '' : '<p class="fb-info">分子和分母沒有公因式，原式已是最簡分式。</p>');
+    show('lab-solution', true); show('lab-again-row', true);
+  }
+
+  EXAMPLES.forEach(function (ex) {
+    var b = document.createElement('button'); b.type = 'button';
+    var sp = Algebra.splitFraction(ex), r = Algebra.parseFraction(ex, true);
+    b.innerHTML = Algebra.expr(Algebra.wrapFrac(r.num.html, r.den.html));
+    b.title = ex;
+    b.addEventListener('click', function () { $('lab-num').value = sp[0].replace(/^\((.*)\)$/, '$1'); $('lab-den').value = sp[1].replace(/^\((.*)\)$/, '$1'); labPreview(); });
+    $('lab-examples').appendChild(b);
+  });
+  ['lab-num', 'lab-den'].forEach(function (id) {
+    $(id).addEventListener('input', labPreview);
+    $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') labStart(); });
+  });
+  ['lab-fn', 'lab-fd'].forEach(function (id) {
+    $(id).addEventListener('input', function () { fxPreview(id); $(id).className = ''; $(id + '-fb').innerHTML = ''; LAB[id === 'lab-fn' ? 'okN' : 'okD'] = null; show('lab-next1', false); });
+    $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') labCheck1(); });
+  });
+  $('lab-final').addEventListener('input', function () { finalPreview(); $('lab-final').className = ''; });
+  $('lab-final').addEventListener('keydown', function (e) { if (e.key === 'Enter') labCheck3(); });
+  $('lab-start').addEventListener('click', labStart);
+  $('lab-check1').addEventListener('click', labCheck1);
+  $('lab-hint1').addEventListener('click', labHint1);
+  $('lab-next1').addEventListener('click', labGoStep2);
+  $('lab-undo').addEventListener('click', labUndo);
+  $('lab-hint2').addEventListener('click', labHint2);
+  $('lab-next2').addEventListener('click', labGoStep3);
+  $('lab-fill').addEventListener('click', function () { $('lab-final').value = LAB.result.text; finalPreview(); });
+  $('lab-check3').addEventListener('click', labCheck3);
+  $('lab-again').addEventListener('click', function () { $('lab-num').value = ''; $('lab-den').value = ''; openLab(); $('lab-num').focus(); });
+  $('lab-home').addEventListener('click', function () { renderStart(); showScreen('screen-start'); });
+  $('btn-lab').addEventListener('click', openLab);
+
+  /* ---------- 事件 ---------- */
+  document.querySelectorAll('.level-card').forEach(function (b) {
+    b.addEventListener('click', function () { var l = b.getAttribute('data-level'); startGame(l === 'mix' ? 'mix' : Number(l), false); });
+  });
+  $('player-name').addEventListener('input', function () { $('name-err').textContent = ''; $('name-row').classList.remove('err'); });
+  $('player-name').addEventListener('change', function () { var n = cleanName($('player-name').value); if (n) lsSet(NAME_KEY, n); });
+  document.querySelectorAll('#class-pills button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      setClassUI(b.getAttribute('data-class'));
+      boardState['board-start'].classFilter = selectedClass;
+      renderBoard('board-start');
+    });
+  });
+  $('btn-next').addEventListener('click', nextQuestion);
+  $('btn-again').addEventListener('click', function () { startGame(S.level, true); });
+  $('btn-home').addEventListener('click', function () { renderStart(); showScreen('screen-start'); });
+  $('btn-quit').addEventListener('click', function () {
+    if (S && !S.answered && !confirm('確定要放棄本局並返回主頁嗎？')) return;
+    clearInterval(timerId); S = null; renderStart(); showScreen('screen-start');
+  });
+  function renderSound() { $('btn-sound').textContent = soundOn ? '🔊' : '🔇'; }
+  $('btn-sound').addEventListener('click', function () { soundOn = !soundOn; lsSet(SOUND_KEY, soundOn ? 'on' : 'off'); renderSound(); });
+  document.addEventListener('keydown', function (e) {
+    if (!$('screen-game').classList.contains('active') || !S) return;
+    var k = e.key.toUpperCase(), map = { '1': 0, '2': 1, '3': 2, '4': 3, 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+    if (!S.answered && k in map) { answer(map[k]); e.preventDefault(); }
+    else if (S.answered && (e.key === 'Enter' || e.key === ' ')) { nextQuestion(); e.preventDefault(); }
+  });
+  $('player-name').value = cleanName(lsGet(NAME_KEY) || '');
+  setClassUI(lsGet(CLASS_KEY) || '');
+  if (selectedClass) {
+    boardState['board-start'].classFilter = selectedClass;
+    boardState['board-end'].classFilter = selectedClass;
+  }
+  renderSound();
+  Board.init();
+  renderStart();
+})();
+</script>
+</body>
+</html>
