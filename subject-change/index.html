@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 主項變換大挑戰（單一檔案，可離線使用）。本機龍虎榜。 -->
+<!-- 主項變換大挑戰（單一檔案，可離線使用）。老師如要設定全班共用的即時龍虎榜，請搜尋「龍虎榜設定」。 -->
 <html lang="zh-Hant-HK">
 <head>
 <meta charset="UTF-8">
@@ -121,18 +121,35 @@ h1{font-size:clamp(1.55rem,5vw,2.1rem);margin:16px 0 6px;letter-spacing:.04em}
 .stats span{font-size:.82rem;color:var(--muted)}.stats b{font-size:1.3rem}
 .end-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.end-btns .btn{min-width:140px}
 .board-card{margin-top:16px}
-.board-card h3{margin:0 0 10px;font-size:1.05rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.board-filters{display:flex;gap:6px;flex-wrap:wrap}
-.board-filters button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:4px 12px;font-size:.82rem;font-weight:600;color:var(--muted)}
-.board-filters button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.board-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.board-head h3{margin:0;font-size:1.05rem}
+.conn{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:99px;background:#eef0f7;color:#555b7a;display:inline-flex;align-items:center;gap:5px}
+.conn::before{content:"";width:8px;height:8px;border-radius:50%;background:#9aa0b8}
+.conn.live{background:#dcfce7;color:#15803d}.conn.live::before{background:#22c55e;animation:pulse 1.5s infinite}
+.conn.wait{background:#fef3c7;color:#92400e}.conn.wait::before{background:#f59e0b}
+.conn.warn-rules{background:#ffe4e6;color:#9f1239}.conn.warn-rules::before{background:#e11d48}
+@keyframes pulse{50%{opacity:.55}}
+.board-class-tabs,.board-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.board-class-tabs button,.board-tabs button{border:none;background:#eef0ff;color:var(--primary);border-radius:99px;padding:5px 12px;font-size:.82rem;font-weight:700}
+.board-class-tabs button.on,.board-tabs button.on{background:var(--primary);color:#fff}
+.board-class-tabs button[data-c="2A"],.board-class-tabs button[data-c="2B"],.board-class-tabs button[data-c="2C"]{background:#e8f5e9;color:#166534}
+.board-class-tabs button[data-c="2A"].on,.board-class-tabs button[data-c="2B"].on,.board-class-tabs button[data-c="2C"].on{background:#16a34a;color:#fff}
+.board-class-tabs button[data-c="none"]{background:#f1f5f9;color:#475569}
+.board-class-tabs button[data-c="none"].on{background:#64748b;color:#fff}
 .board-list{list-style:none;padding:0;margin:0}
 .board-list li{display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px dashed #e0e2f2;font-size:.92rem}
 .board-list li:first-child{border-top:none}
+.board-list li.me{background:#fff7d6;border-radius:10px;padding-left:8px}
 .board-list .rank{width:28px;height:28px;border-radius:8px;background:#eef0ff;color:var(--primary);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.85rem}
 .board-list .rank.t1{background:#fef3c7;color:#b45309}.board-list .rank.t2{background:#e5e7eb;color:#4b5563}.board-list .rank.t3{background:#ffedd5;color:#c2410c}
-.board-list .nm{flex:1;font-weight:600}.board-list .sc{font-weight:800;color:var(--primary)}
+.board-list .nm{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.board-list .sc{font-weight:800;color:var(--primary)}
 .board-list .meta{font-size:.78rem;color:var(--muted)}
 .board-empty{color:var(--muted);text-align:center;padding:16px;font-size:.92rem}
+.board-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:.8rem;color:var(--muted)}
+.board-rules-note{background:#fff1f2;color:#9f1239;border-radius:12px;padding:8px 12px;font-size:.85rem;margin:0 0 8px;font-weight:600}
+.link-btn{border:none;background:none;color:var(--muted);text-decoration:underline;font-size:.8rem;padding:4px}
+.link-btn:hover{color:var(--bad)}
+.end-rank{margin:8px 0 0;font-weight:800;color:#b45309;background:#fff7d6;border-radius:14px;padding:10px 14px;display:inline-block}
 .lab-examples{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .lab-examples button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:.85rem;font-weight:600;color:var(--primary)}
 .lab-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:10px 0}
@@ -423,6 +440,7 @@ h1{font-size:clamp(1.55rem,5vw,2.1rem);margin:16px 0 6px;letter-spacing:.04em}
     <div id="end-player" style="color:var(--muted);margin-bottom:6px"></div>
     <div class="stars" id="end-stars"></div>
     <div class="new-record hidden" id="end-record">🎉 打破你的最高分紀錄！</div>
+    <div class="end-rank hidden" id="end-rank"></div>
     <div class="stats">
       <div><span>得分</span><b id="end-score">0</b></div>
       <div><span>正確</span><b id="end-acc">0</b></div>
@@ -456,6 +474,56 @@ const LS_NAME='scg_name', LS_CLASS='scg_class', LS_BEST='scg_best', LS_BOARD='sc
 const TOTAL_STEPS=8, TOTAL_MC=10, LIVES=3;
 const MC_TIME={1:60,2:90,3:120};
 const MC_LABEL={1:'初級',2:'中級',3:'高級'};
+
+/* ============================================================================
+ *  ★★★ 龍虎榜設定（老師可修改這一段） ★★★
+ * ----------------------------------------------------------------------------
+ *  FIREBASE_CONFIG = null  →「本機模式」：龍虎榜只儲存在這部裝置的瀏覽器內（localStorage），
+ *                           完全離線可用。
+ *  FIREBASE_CONFIG 填上 databaseURL →「即時連線模式」：全班不同裝置共用同一個龍虎榜，
+ *                           成績即時更新。使用 Firebase Realtime Database REST API
+ *                           及 EventSource 串流，不需要載入 SDK，也不需要 apiKey。
+ *                           若連線失敗，會自動改用本機模式，並定期重試。
+ *
+ *  本遊戲使用獨立路徑 leaderboard_subject_change，不會與「代數分式化簡」的 leaderboard 混在一起。
+ *
+ *  設定方法（只需做一次；若代數分式已設定同一個專案，只需加規則節點）：
+ *    1. 到 https://console.firebase.google.com 開啟專案（或沿用 s2oi-666dd）。
+ *    2.「建構」→「Realtime Database」→ 複製資料庫網址填入下面 databaseURL。
+ *    3. 在「規則」加入（或合併）以下節點並按「發布」：
+ *       {
+ *         "rules": {
+ *           ".read": false,
+ *           ".write": false,
+ *           "leaderboard_subject_change": {
+ *             ".read": true,
+ *             ".indexOn": ["score"],
+ *             "$id": {
+ *               ".write": "!data.exists() && newData.exists() && $id.matches(/^[a-z0-9]{8,24}$/)",
+ *               ".validate": "newData.hasChildren(['name', 'score', 'mode', 'acc', 'correct', 'answered', 'ts', 'class'])",
+ *               "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 32" },
+ *               "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3500" },
+ *               "mode": { ".validate": "newData.isString() && newData.val().matches(/^(1|2|3)$/)" },
+ *               "acc": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+ *               "correct": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
+ *               "answered": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10" },
+ *               "ts": { ".validate": "newData.isNumber() && newData.val() <= now" },
+ *               "class": { ".validate": "newData.isString() && newData.val().matches(/^(2A|2B|2C)$/)" },
+ *               "$other": { ".validate": false }
+ *             }
+ *           }
+ *         }
+ *       }
+ *       （規則只容許「新增」成績；老師可在控制台刪除 leaderboard_subject_change 節點以清榜。）
+ *       ★ 若規則尚未允許此路徑／class 欄位，網上寫入會失敗；遊戲會改存本機並提示更新規則。
+ *    4. 改回本機模式：把下面改為  const FIREBASE_CONFIG = null;
+ * ========================================================================== */
+const FIREBASE_CONFIG = {
+  databaseURL: 'https://s2oi-666dd-default-rtdb.firebaseio.com',
+  projectId: 's2oi-666dd'
+};
+const LEADERBOARD_PATH = 'leaderboard_subject_change';
+/* ============================ 設定完畢 ============================ */
 
 function $(id){ return document.getElementById(id); }
 function randInt(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
@@ -948,7 +1016,8 @@ function distractorLines(correctEq, subject){
 let player={name:'', cls:''};
 let stepsState=null, mcState=null, labState=null;
 let lastMode=null, lastMcLevel=1;
-let boardFilter='all';
+let lastEntryId=null;
+const boardState={filter:'all', classFilter:'all', highlight:null};
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -985,19 +1054,131 @@ function loadPlayer(){
   }catch(e){}
 }
 
-/* ---- leaderboard local ---- */
-function getBoard(){
-  try{ return JSON.parse(localStorage.getItem(LS_BOARD)||'[]'); }catch(e){ return []; }
-}
-function saveBoard(arr){
-  try{ localStorage.setItem(LS_BOARD, JSON.stringify(arr.slice(0,80))); }catch(e){}
-}
-function addBoardEntry(entry){
-  const arr=getBoard();
-  arr.push(entry);
-  arr.sort((a,b)=>b.score-a.score || a.ts-b.ts);
-  saveBoard(arr);
-}
+/* ---- BoardCore：Firebase REST 串流合併 ---- */
+var BoardCore = (function () {
+  function copy(o){ var r={}; if(o&&typeof o==='object') for(var k in o) r[k]=o[k]; return r; }
+  function applyEvent(map, type, msg){
+    var out=copy(map);
+    if(!msg || typeof msg.path!=='string') return out;
+    var parts=msg.path.split('/').filter(Boolean), data=msg.data;
+    if(type==='put'){
+      if(!parts.length) return data&&typeof data==='object'?copy(data):{};
+      if(parts.length===1){ if(data===null) delete out[parts[0]]; else out[parts[0]]=data; return out; }
+      var e=copy(out[parts[0]]);
+      if(data===null) delete e[parts[1]]; else e[parts[1]]=data;
+      if(Object.keys(e).length) out[parts[0]]=e; else delete out[parts[0]];
+      return out;
+    }
+    if(type==='patch' && data && typeof data==='object'){
+      if(!parts.length){ for(var k in data){ if(data[k]===null) delete out[k]; else out[k]=data[k]; } return out; }
+      var o=copy(out[parts[0]]);
+      for(var f in data){ if(data[f]===null) delete o[f]; else o[f]=data[f]; }
+      out[parts[0]]=o;
+      return out;
+    }
+    return out;
+  }
+  return { applyEvent: applyEvent };
+})();
+
+/* ---- 龍虎榜（本機 localStorage / Firebase 即時） ---- */
+var Board = (function () {
+  var KEY = LS_BOARD, MAX = 300, POLL_MS = 5000, RETRY_MS = 20000;
+  var mode = 'local', failed = false, rulesNeedUpdate = false, remote = {}, subs = [], base = null, useQuery = false, es = null, pollId = null, retryId = null;
+  var QUERY = '?orderBy=%22score%22&limitToLast=200';
+  function cleanName(s){ s=String(s==null?'':s).trim().replace(/\s+/g,' '); return s.slice(0,32); }
+  function cleanClass(c){ c=String(c==null?'':c).trim().toUpperCase(); return (c==='2A'||c==='2B'||c==='2C')?c:''; }
+  function sanitize(x, id){
+    if(!x || typeof x!=='object') return null;
+    var m=String(x.mode);
+    if(!MC_LABEL[m]) return null;
+    var score=Math.round(Number(x.score)); if(!isFinite(score)||score<0) return null;
+    var acc=Math.round(Number(x.acc)); if(!isFinite(acc)) acc=0;
+    var ts=Number(x.ts); if(!isFinite(ts)) ts=0;
+    var cls=cleanClass(x['class']!=null?x['class']:x.cls);
+    return { id:String(id||x.id||''), name:cleanName(x.name)||'（無名氏）', score:Math.min(score,99999), mode:m, acc:Math.max(0,Math.min(100,acc)), correct:Number(x.correct)||0, answered:Number(x.answered)||0, ts:ts, 'class':cls, cls:cls };
+  }
+  function loadLocal(){ try{ var a=JSON.parse(localStorage.getItem(KEY)||'[]'); return Array.isArray(a)?a.map(function(x){return sanitize(x);}).filter(Boolean):[]; }catch(e){ return []; } }
+  function sortList(a){ return a.sort(function(x,y){ return (y.score-x.score)||(y.acc-x.acc)||(x.ts-y.ts); }); }
+  function notify(){ subs.forEach(function(f){ try{f();}catch(e){} }); }
+  function warn(msg, err){ if(window.console) console.warn('龍虎榜：'+msg, err&&err.message?err.message:(err||'')); }
+  function getJSON(url){ return fetch(url,{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }); }
+  var queryKnown=false;
+  function loadOnce(){
+    if(queryKnown && !useQuery) return getJSON(base+'.json');
+    return getJSON(base+'.json'+QUERY).then(function(d){ useQuery=true; queryKnown=true; return d; }, function(){
+      return getJSON(base+'.json').then(function(d){ useQuery=false; queryKnown=true; return d; });
+    });
+  }
+  function setLive(data){ remote=data&&typeof data==='object'?data:{}; mode='live'; failed=false; notify(); }
+  function goOffline(err){ warn('連線失敗，暫時改用本機模式', err); var changed=mode!=='local'||!failed; mode='local'; failed=true; if(changed) notify(); }
+  function closeStream(){ if(es){ try{es.close();}catch(e){} es=null; } }
+  function startPolling(){
+    closeStream();
+    if(pollId) return;
+    pollId=setInterval(function(){ loadOnce().then(setLive, goOffline); }, POLL_MS);
+  }
+  function startStream(){
+    if(!window.EventSource){ startPolling(); return; }
+    try{ es=new EventSource(base+'.json'+(useQuery?QUERY:'')); }catch(e){ startPolling(); return; }
+    var errors=0;
+    function handler(type){
+      return function(ev){
+        errors=0;
+        try{ remote=BoardCore.applyEvent(remote, type, JSON.parse(ev.data)); mode='live'; failed=false; notify(); }catch(e){ warn('串流資料無法解讀', e); }
+      };
+    }
+    es.addEventListener('put', handler('put'));
+    es.addEventListener('patch', handler('patch'));
+    es.addEventListener('cancel', function(){ warn('串流被伺服器取消，改用定時更新'); startPolling(); });
+    es.addEventListener('auth_revoked', function(){ startPolling(); });
+    es.onerror=function(){ errors++; if(!es||es.readyState===2||errors>=3){ warn('即時串流中斷，改用定時更新'); startPolling(); } };
+  }
+  function connect(){
+    retryId=null;
+    loadOnce().then(function(d){ setLive(d); startStream(); }, function(err){ goOffline(err); retryId=setTimeout(connect, RETRY_MS); });
+  }
+  function init(){
+    window.addEventListener('storage', function(e){ if(e.key===KEY||e.key===null) notify(); });
+    var url=typeof FIREBASE_CONFIG!=='undefined' && FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL;
+    if(!url || !window.fetch){ mode='local'; return; }
+    base=String(url).replace(/\/+$/,'')+'/'+LEADERBOARD_PATH;
+    mode='wait'; notify();
+    connect();
+  }
+  function add(entry){
+    var e=sanitize(entry, entry.id);
+    if(!e) return;
+    try{ localStorage.setItem(KEY, JSON.stringify(sortList(loadLocal().concat([e])).slice(0,MAX))); }catch(err){}
+    if(base){
+      var payload={ name:e.name, score:e.score, mode:e.mode, acc:e.acc, correct:e.correct, answered:e.answered, ts:e.ts, 'class':e['class'] };
+      if(mode==='live'){ remote=BoardCore.applyEvent(remote, 'put', { path:'/'+e.id, data:payload }); }
+      var body=JSON.parse(JSON.stringify(payload)); body.ts={'.sv':'timestamp'};
+      fetch(base+'/'+e.id+'.json', { method:'PUT', body:JSON.stringify(body), headers:{'Content-Type':'application/json'} })
+        .then(function(r){ if(!r.ok){ var err=new Error('HTTP '+r.status); err.status=r.status; throw err; } })
+        .catch(function(err){
+          warn('成績未能上載到雲端（已保存在本機）', err);
+          if(err && (err.status===400||err.status===401||/HTTP 40[01]/.test(String(err.message||'')))){ rulesNeedUpdate=true; notify(); }
+        });
+    }
+    notify();
+  }
+  function list(opts){
+    if(typeof opts==='string') opts={ mode:opts, 'class':'all' };
+    opts=opts||{};
+    var a=mode==='live'?Object.keys(remote).map(function(k){ return sanitize(remote[k], k); }).filter(Boolean):loadLocal();
+    var mf=opts.mode||'all', cf=opts['class']||'all';
+    if(mf && mf!=='all') a=a.filter(function(x){ return x.mode===mf; });
+    if(cf && cf!=='all'){
+      if(cf==='none') a=a.filter(function(x){ return !x['class']; });
+      else a=a.filter(function(x){ return x['class']===cf; });
+    }
+    return sortList(a);
+  }
+  function clearLocal(){ try{ localStorage.removeItem(KEY); }catch(e){} notify(); }
+  return { init:init, add:add, list:list, clearLocal:clearLocal, onChange:function(f){ subs.push(f); }, mode:function(){ return mode; }, failed:function(){ return failed; }, rulesNeedUpdate:function(){ return rulesNeedUpdate; } };
+})();
+
 function getBest(){
   try{ return JSON.parse(localStorage.getItem(LS_BEST)||'{}'); }catch(e){ return {}; }
 }
@@ -1006,37 +1187,70 @@ function setBest(key, score){
   if(!b[key] || score>b[key]){ b[key]=score; try{localStorage.setItem(LS_BEST,JSON.stringify(b));}catch(e){} return true; }
   return false;
 }
-function renderBoard(el, highlight){
+function pad(n){ return (n<10?'0':'')+n; }
+function fmtDate(ts){ if(!ts) return ''; var d=new Date(ts); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function rankOf(id, opts){ var a=Board.list(opts); for(var i=0;i<a.length;i++) if(a[i].id===id) return i+1; return 0; }
+
+function renderBoard(el, highlightId){
   if(!el) return;
-  const arr=getBoard();
-  let list=arr.slice();
-  if(boardFilter==='2A'||boardFilter==='2B'||boardFilter==='2C') list=list.filter(x=>x.cls===boardFilter);
-  else if(boardFilter==='1'||boardFilter==='2'||boardFilter==='3') list=list.filter(x=>String(x.mode)===boardFilter);
-  list=list.slice(0,12);
-  let html='<h3>🏆 MC 龍虎榜（本機）<span class="board-filters">';
-  [['all','全部'],['2A','2A'],['2B','2B'],['2C','2C']].forEach(([k,lab])=>{
-    html+='<button type="button" data-bf="'+k+'" class="'+(boardFilter===k?'on':'')+'">'+lab+'</button>';
-  });
-  html+='</span></h3>';
-  if(!list.length){ html+='<div class="board-empty">尚未有成績，完成一局 MC 題後就會出現在這裏。</div>'; el.innerHTML=html; bindBoardFilters(el); return; }
-  html+='<ul class="board-list">';
-  list.forEach((e,i)=>{
-    const rk=i<3?' t'+(i+1):'';
-    const me=highlight && e.name===highlight.name && e.ts===highlight.ts;
-    html+='<li'+(me?' style="background:#eef0ff;border-radius:10px;padding-left:8px"':'')+'>'+
-      '<span class="rank'+rk+'">'+(i+1)+'</span>'+
-      '<span class="nm">'+esc(e.name)+' <span class="meta">'+esc(e.cls||'')+' · '+(MC_LABEL[e.mode]||e.mode)+'</span></span>'+
-      '<span class="sc">'+e.score+'</span></li>';
-  });
-  html+='</ul>';
+  if(highlightId && typeof highlightId==='object') highlightId=highlightId.id||null;
+  if(highlightId) boardState.highlight=highlightId;
+  var mode=Board.mode(), needRules=Board.rulesNeedUpdate();
+  var badge=needRules?'<span class="conn warn-rules">請老師更新數據庫規則</span>'
+    : mode==='live'?'<span class="conn live">即時連線</span>'
+    : mode==='wait'?'<span class="conn wait">連線中…</span>'
+    : '<span class="conn">本機'+(Board.failed()?'（連線失敗）':'')+'</span>';
+  var classTabs=[['2A','2A'],['2B','2B'],['2C','2C'],['all','全部'],['none','未分班']].map(function(t){
+    return '<button type="button" data-c="'+t[0]+'" class="'+(boardState.classFilter===t[0]?'on':'')+'">'+t[1]+'</button>';
+  }).join('');
+  var tabs=[['all','全部'],['1','初級'],['2','中級'],['3','高級']].map(function(t){
+    return '<button type="button" data-f="'+t[0]+'" class="'+(boardState.filter===t[0]?'on':'')+'">'+t[1]+'</button>';
+  }).join('');
+  var all=Board.list({ mode:boardState.filter, 'class':boardState.classFilter });
+  var html='<div class="board-head"><h3>🏅 MC 龍虎榜</h3>'+badge+'</div>';
+  if(needRules) html+='<div class="board-rules-note">⚠️ 成績已保存在本機；雲端寫入需老師更新 Firebase 規則（加入 leaderboard_subject_change，詳見源碼「龍虎榜設定」）。</div>';
+  html+='<div class="board-class-tabs">'+classTabs+'</div><div class="board-tabs">'+tabs+'</div>';
+  if(!all.length){
+    html+='<div class="board-empty">暫時未有紀錄，完成一局 MC 題後就會出現在這裏。</div>';
+  } else {
+    html+='<ul class="board-list">';
+    all.slice(0,12).forEach(function(e,i){
+      var rk=i<3?' t'+(i+1):'';
+      var me=boardState.highlight && e.id===boardState.highlight;
+      html+='<li class="'+(me?'me':'')+'">'+
+        '<span class="rank'+rk+'">'+(i+1)+'</span>'+
+        '<span class="nm">'+esc(e.name)+' <span class="meta">'+(e['class']?esc(e['class']):'未分班')+' · '+(MC_LABEL[e.mode]||e.mode)+(e.acc!=null?' · '+e.acc+'%':'')+'</span></span>'+
+        '<span class="sc">'+e.score+'</span></li>';
+    });
+    html+='</ul>';
+  }
+  var note=needRules?'成績已保存在本機；雲端寫入需更新規則。'
+    : mode==='live'?'成績會即時同步到所有連線裝置。可按班別／難度查看。'
+    : '紀錄只儲存在這部裝置的瀏覽器內。';
+  html+='<div class="board-foot"><span>'+note+'</span><button type="button" class="link-btn" data-act="clear">🧹 清除本機龍虎榜（老師用）</button></div>';
   el.innerHTML=html;
-  bindBoardFilters(el);
 }
-function bindBoardFilters(el){
-  el.querySelectorAll('[data-bf]').forEach(btn=>{
-    btn.onclick=()=>{ boardFilter=btn.getAttribute('data-bf'); renderBoard($('board-start')); renderBoard($('board-end')); };
+function renderBoards(){
+  renderBoard($('board-start'));
+  renderBoard($('board-end'));
+}
+function bindBoardClicks(){
+  ['board-start','board-end'].forEach(function(id){
+    var el=$(id); if(!el || el._boardBound) return;
+    el._boardBound=true;
+    el.addEventListener('click', function(e){
+      var t=e.target.closest('button'); if(!t) return;
+      if(t.dataset.c){ boardState.classFilter=t.dataset.c; renderBoards(); }
+      else if(t.dataset.f){ boardState.filter=t.dataset.f; renderBoards(); }
+      else if(t.dataset.act==='clear'){
+        var msg='確定要清除這部裝置上的龍虎榜紀錄嗎？此操作不能復原。';
+        if(Board.mode()==='live') msg+='\n\n（注意：現正使用即時連線模式，雲端龍虎榜需由老師在 Firebase 控制台刪除「'+LEADERBOARD_PATH+'」節點；這裏只會清除本機備份。）';
+        if(confirm(msg)) Board.clearLocal();
+      }
+    });
   });
 }
+
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 /* ---- STEPS MODE ---- */
@@ -1503,11 +1717,27 @@ function endGame(mode){
   const stars=acc>=90?3:acc>=70?2:acc>=40?1:0;
   $('end-stars').innerHTML=['★','★','★'].map((s,i)=>i<stars?s:'<span class="off">★</span>').join('');
   let record=false;
+  const rankEl=$('end-rank');
+  if(rankEl){ rankEl.classList.add('hidden'); rankEl.textContent=''; }
   if(isMC){
     record=setBest('mc'+st.level, score);
-    const entry={name:player.name, cls:player.cls, score, mode:st.level, acc, correct, answered:total, ts:Date.now()};
-    addBoardEntry(entry);
-    renderBoard($('board-end'), entry);
+    boardState.filter=String(st.level);
+    boardState.classFilter=player.cls||'all';
+    if(score>0){
+      const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+      lastEntryId=id;
+      boardState.highlight=id;
+      Board.add({ id, name:player.name, score, mode:String(st.level), acc, correct, answered:total, ts:Date.now(), 'class':player.cls, cls:player.cls });
+      if(rankEl){
+        const rank=rankOf(id, { mode:String(st.level), 'class':player.cls });
+        rankEl.innerHTML='🏅 '+esc(player.name)+'（'+esc(player.cls)+'），你在本班「'+(MC_LABEL[st.level]||'')+'」龍虎榜排第 <b>'+rank+'</b> 名！'+(rank===1?' 🥇 冠軍！':'');
+        rankEl.classList.remove('hidden');
+      }
+    } else {
+      boardState.highlight=null;
+      if(rankEl){ rankEl.textContent='今次未有得分，未能登上龍虎榜，再試一次吧！'; rankEl.classList.remove('hidden'); }
+    }
+    renderBoard($('board-end'), boardState.highlight);
   } else {
     record=setBest('steps', score);
     renderBoard($('board-end'));
@@ -1534,6 +1764,8 @@ document.querySelectorAll('#class-pills button').forEach(b=>{
     player.cls=b.getAttribute('data-class');
     document.querySelectorAll('#class-pills button').forEach(x=>x.classList.toggle('on',x===b));
     $('class-err').textContent='';
+    boardState.classFilter=player.cls||'all';
+    renderBoard($('board-start'));
   };
 });
 $('btn-mode-steps').onclick=()=>startSteps();
@@ -1576,6 +1808,10 @@ document.addEventListener('keydown', e=>{
 });
 
 loadPlayer();
+if(player.cls) boardState.classFilter=player.cls;
+bindBoardClicks();
+Board.onChange(renderBoards);
+Board.init();
 renderBoard($('board-start'));
 })();
 </script>
