@@ -662,6 +662,114 @@ function genForMC(level){
   return attachMCOptions(g);
 }
 
+
+/* ---- format helpers for lab expand-linear plans ---- */
+function termCL(c, letter){
+  if(c===0) return '0';
+  if(c===1) return letter;
+  if(c===-1) return '-'+letter;
+  return String(c)+letter;
+}
+function fmtLin2(c1, L1, c2, L2){
+  let s=termCL(c1, L1);
+  if(c2===0) return s;
+  if(c2===1) return s+'+'+L2;
+  if(c2===-1) return s+'-'+L2;
+  if(c2>0) return s+'+'+c2+L2;
+  return s+String(c2)+L2;
+}
+function fmtLinConst(cL, L, K){
+  let s=termCL(cL, L);
+  if(K===0) return s;
+  if(K>0) return s+'+'+K;
+  return s+String(K);
+}
+function fmtVarPlusConst(coefQ, Q, addConst){
+  // coefQ*Q + addConst
+  let s=termCL(coefQ, Q);
+  if(addConst===0) return s;
+  if(addConst>0) return s+'+'+addConst;
+  return s+String(addConst);
+}
+/** ax±by = c(x±d) style plans (also y±ax, and sides flipped). */
+function solveExpandLinearTwo(eq, subject){
+  const orig=eq;
+  let linearLeft=true; // bracket on RHS
+  let m=eq.match(/^(\d*)([A-Za-z])([+-])(\d*)([A-Za-z])=(\d+)\(([A-Za-z])([+-])(\d+)\)$/);
+  if(!m){
+    m=eq.match(/^(\d+)\(([A-Za-z])([+-])(\d+)\)=(\d*)([A-Za-z])([+-])(\d*)([A-Za-z])$/);
+    if(!m) return null;
+    linearLeft=false;
+    // normalize captures to same names as linearLeft form
+    m=[m[0], m[5], m[6], m[7], m[8], m[9], m[1], m[2], m[3], m[4]];
+  }
+  const a=m[1]===''?1:+m[1];
+  const L1=m[2];
+  const coef2=(m[3]==='+'?1:-1)*(m[4]===''?1:+m[4]);
+  const L2=m[5];
+  const B=+m[6];
+  const Lb=m[7];
+  const K=B*(m[8]==='+'?1:-1)*(+m[9]);
+  if(L1===L2) return null;
+  if(Lb!==L1 && Lb!==L2) return null;
+  if(subject!==L1 && subject!==L2) return null;
+
+  let coefP, coefQ, P, Q;
+  if(Lb===L1){ P=L1; Q=L2; coefP=a; coefQ=coef2; }
+  else { P=L2; Q=L1; coefP=coef2; coefQ=a; }
+
+  // Keep original side order; only expand the bracket side
+  const linearSide=(m[1]||'')+L1+m[3]+(m[4]||'')+L2;
+  const expandedSide=fmtLinConst(B, Lb, K);
+  const expanded=linearLeft?(linearSide+'='+expandedSide):(expandedSide+'='+linearSide);
+  const d=B-coefP; // after moving: coefQ*Q - K = d*P
+
+  if(subject===Q){
+    let afterMove;
+    if(coefQ===1){
+      afterMove=Q+'='+fmtLinConst(d,P,K);
+    } else if(coefQ===-1){
+      afterMove=Q+'='+fmtLinConst(-d,P,-K);
+    } else {
+      const right=fmtLinConst(d,P,K);
+      const mid=termCL(coefQ,Q)+'='+right;
+      return {
+        orig, subject,
+        steps:[
+          {op:'拆', eq:expanded, why:OP_HINT['拆']},
+          {op:'移', eq:mid, why:OP_HINT['移']},
+          {op:'除', eq:Q+'=('+right+')/'+coefQ, why:OP_HINT['除']}
+        ]
+      };
+    }
+    return {
+      orig, subject,
+      steps:[
+        {op:'拆', eq:expanded, why:OP_HINT['拆']},
+        {op:'移', eq:afterMove, why:OP_HINT['移']}
+      ]
+    };
+  }
+
+  // subject === P
+  if(d===0) return null;
+  const left=fmtVarPlusConst(coefQ, Q, -K); // coefQ*Q - K
+  const mid=left+'='+termCL(d,P);
+  const steps=[
+    {op:'拆', eq:expanded, why:OP_HINT['拆']},
+    {op:'移', eq:mid, why:OP_HINT['移']}
+  ];
+  if(d===1){
+    return {orig, subject, steps};
+  }
+  if(d===-1){
+    steps.push({op:'除', eq:P+'=-('+left+')', why:OP_HINT['除']});
+    return {orig, subject, steps};
+  }
+  steps.push({op:'除', eq:'('+left+')/'+d+'='+P, why:OP_HINT['除']});
+  return {orig, subject, steps};
+}
+
 /* ---- known lab templates (match student input to guided path) ---- */
 const LAB_EXAMPLES=[
   {eq:'y=2x+3', subject:'x'},
@@ -669,7 +777,9 @@ const LAB_EXAMPLES=[
   {eq:'y=3(x-2)', subject:'x'},
   {eq:'4x+5=y', subject:'x'},
   {eq:'y=2x+5x', subject:'x'},
-  {eq:'y=(2x+1)/3', subject:'x'}
+  {eq:'y=(2x+1)/3', subject:'x'},
+  {eq:'2x+y=4(x-3)', subject:'x'},
+  {eq:'2x+y=4(x-3)', subject:'y'}
 ];
 
 function solveKnown(eq, subject){
@@ -801,6 +911,11 @@ function solveKnown(eq, subject){
       orig:eq, subject,
       steps:[{op:'移', eq:sign==='+'?`${Y}-${b}=${subject}`:`${Y}+${b}=${subject}`, why:OP_HINT['移']}]
     };
+  }
+  // ax±y = b(x±c) and variants (e.g. 2x+y=4(x-3))
+  {
+    const plan=solveExpandLinearTwo(eq, subject);
+    if(plan) return plan;
   }
   return null;
 }
